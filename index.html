@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONLYDEMIR Visuals</title>
+<style>
+  @font-face { font-family: Anton; src: url(fonts/anton-latin.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: Anton; src: url(fonts/anton-latin-ext.woff2) format('woff2');
+    unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  @font-face { font-family: Exo2; font-style: italic; font-weight: 900; src: url(fonts/exo2-latin-900-italic.woff) format('woff');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2122; }
+  @font-face { font-family: Exo2; font-style: italic; font-weight: 900; src: url(fonts/exo2-latin-ext-900-italic.woff) format('woff');
+    unicode-range: U+0100-02AF, U+1E00-1EFF, U+20A0-20C0, U+2C60-2C7F, U+A720-A7FF; }
+
+  :root { --red: #e30a17; --bg: rgba(12, 6, 8, .9); --line: rgba(255, 255, 255, .08); --muted: #a28e92; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: #f3eded;
+    font: 13px/1.45 -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  body.idle { cursor: none; }
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #000; z-index: 20; font: 64px Anton, Impact, sans-serif; letter-spacing: .06em; transition: opacity .8s; }
+  #loading small { font: 13px -apple-system, sans-serif; color: var(--muted); letter-spacing: .2em; margin-top: 8px; }
+  #loading.done { opacity: 0; pointer-events: none; }
+
+  #ui { position: fixed; top: 12px; left: 12px; bottom: 12px; width: 360px; max-width: calc(100vw - 24px); display: flex; flex-direction: column;
+    background: var(--bg); border: 1px solid rgba(227, 10, 23, .35); border-radius: 14px; backdrop-filter: blur(16px);
+    z-index: 5; box-sizing: border-box; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  #ui.hidden { display: none; }
+  header { padding: 12px 14px 0; border-bottom: 1px solid var(--line); flex: none; }
+  .top { display: flex; align-items: center; gap: 10px; }
+  header h1 { font: 26px Anton, Impact, sans-serif; letter-spacing: .06em; margin: 0; }
+  header .tag { font-size: 10px; letter-spacing: .14em; color: var(--red); font-weight: 700; line-height: 1.2; }
+  .sp { flex: 1; }
+  #beatDot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); box-shadow: 0 0 12px var(--red); }
+  .now { font-size: 11px; color: var(--muted); margin: 6px 0 8px; }
+  .now b { color: #fff; }
+  #tabs { display: flex; gap: 2px; }
+  #tabs button { flex: 1; border: 0; border-radius: 8px 8px 0 0; background: transparent; color: var(--muted); padding: 8px 4px; font-weight: 600; font-size: 12px; letter-spacing: .04em; }
+  #tabs button.on { background: rgba(227, 10, 23, .18); color: #fff; box-shadow: inset 0 -2px 0 var(--red); }
+  .scroll { overflow-y: auto; flex: 1; scrollbar-width: thin; scrollbar-color: #3a2328 transparent; }
+  section { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  h2 { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; font-weight: 700; }
+  .row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .row > * { flex: 1; }
+  button, select, input, textarea { font: inherit; color: #fff; background: #1f1316; border: 1px solid #3a2328; border-radius: 8px; padding: 7px 9px; }
+  button { cursor: pointer; transition: background .12s, border-color .12s; user-select: none; }
+  button:hover { background: #2d1a1f; }
+  button.on { background: var(--red); border-color: var(--red); }
+  button.hot { border-color: var(--red); font-weight: 700; letter-spacing: .06em; }
+  button.flash { background: #fff !important; color: #000; }
+  button.rec { background: #b00; border-color: #f33; }
+  button.wide { width: 100%; }
+  select, input, textarea { width: 100%; box-sizing: border-box; margin-bottom: 6px; }
+  input[type=range] { padding: 0; margin: 2px 0 8px; accent-color: var(--red); background: none; border: 0; height: 18px; }
+  textarea { height: 104px; resize: vertical; font-size: 12px; }
+  label { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 11px; margin: 2px 0 3px; }
+  label span { color: #fff; font-variant-numeric: tabular-nums; }
+  kbd { display: inline-block; min-width: 13px; text-align: center; background: rgba(255,255,255,.1); border-radius: 4px; padding: 0 4px;
+    font: 10px/1.6 -apple-system, sans-serif; color: #fff; margin-right: 6px; }
+  label kbd { margin: 0 0 0 6px; }
+  .cat { font-size: 10px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; margin: 8px 0 5px; }
+  .cat:first-child { margin-top: 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .scene { display: flex; align-items: center; text-align: left; padding: 6px 7px; }
+  .scene span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scene i { font-style: normal; font-size: 9px; color: #6f6; padding: 2px 3px; opacity: .8; }
+  .scene.out i { color: #555; }
+  .scene.out span { opacity: .55; }
+  .scene.prev { border-color: #fff; }
+  #lockBtn { width: 100%; padding: 10px; font-weight: 700; margin-bottom: 6px; }
+  #lockBtn.on { background: #fff; color: #000; border-color: #fff; }
+  .seg { display: flex; flex-wrap: wrap; border: 1px solid #3a2328; border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
+  .seg button { flex: 1 1 auto; border: 0; border-radius: 0; padding: 6px 5px; font-size: 11px; }
+  .pal { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 8px; }
+  .pal button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 2px; font-size: 10px; }
+  .pal b { width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(255,255,255,.3); }
+  .cp { flex-direction: column; align-items: stretch; gap: 3px; }
+  .cp input { height: 30px; padding: 2px; margin: 0; }
+  .stats { display: flex; gap: 6px; margin: 6px 0; }
+  .stats div { flex: 1; background: rgba(255,255,255,.04); border-radius: 8px; padding: 5px 8px; color: var(--muted); font-size: 10px; letter-spacing: .1em; }
+  .stats b { display: block; color: #fff; font-size: 16px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+  .stats b.break { color: #6cf; } .stats b.drop { color: var(--red); }
+  .meters { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; margin: 6px 0 8px; font-size: 10px; color: var(--muted); }
+  .meter { height: 6px; background: #2a1a1d; border-radius: 3px; overflow: hidden; }
+  .meter i { display: block; height: 100%; background: var(--red); transform-origin: left; transform: scaleX(0); }
+  .hint { color: var(--muted); font-size: 11px; }
+  #status { color: #ff8a95; font-size: 12px; min-height: 0; }
+  .preset small { color: var(--muted); }
+  .tempo { display: flex; gap: 4px; margin-bottom: 6px; }
+  .tempo button { flex: none; width: 44px; padding: 6px 0; }
+  .tempo input { flex: 1; margin: 0; text-align: center; font: 700 22px/1 -apple-system, sans-serif; font-variant-numeric: tabular-nums; padding: 4px; }
+  #barDots { display: flex; gap: 4px; align-items: center; justify-content: center; }
+  #barDots i { width: 12px; height: 12px; border-radius: 50%; background: #2a1a1d; }
+  #barDots i:first-child { border: 1px solid var(--red); box-sizing: border-box; }
+  #barDots i.on { background: var(--red); box-shadow: 0 0 10px var(--red); }
+  .preset .load { flex: 4; text-align: left; }
+  .keys { color: var(--muted); font-size: 11px; columns: 2; column-gap: 10px; }
+  .keys div { break-inside: avoid; margin-bottom: 3px; }
+  #recDot { position: fixed; top: 14px; right: 14px; width: 10px; height: 10px; border-radius: 50%; background: #f22; display: none; z-index: 6; }
+  #lockBadge { position: fixed; top: 10px; right: 30px; font-size: 14px; display: none; z-index: 6; opacity: .5; }
+  body.idle #lockBadge { opacity: 0; }
+  #dropZone { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(227,10,23,.35);
+    font: 44px Anton, Impact, sans-serif; z-index: 30; }
+  #fileWarn { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; z-index: 40;
+    background: #000; padding: 24px; font-size: 16px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="loading">ONLYDEMIR<small>YÜKLENİYOR…</small></div>
+<div id="recDot"></div>
+<div id="lockBadge">🔒</div>
+<div id="dropZone">FOTOĞRAFI BIRAK</div>
+<div id="fileWarn"><div><b>Bu dosyayı çift tıklayarak açma.</b><br>Klasördeki <b>start.command</b> dosyasına çift tıkla; sistem kendini açar.</div></div>
+
+<aside id="ui">
+  <header>
+    <div class="top">
+      <h1>ONLYDEMIR</h1>
+      <div class="tag">29 EKİM<br>CUMHURİYET 103</div>
+      <div class="sp"></div>
+      <div id="beatDot"></div>
+    </div>
+    <div class="now">Ekranda: <b id="sceneName"></b> <span id="fps" style="float:right"></span></div>
+    <nav id="tabs">
+      <button data-t="live">CANLI</button>
+      <button data-t="look">GÖRÜNÜM</button>
+      <button data-t="text">YAZI</button>
+      <button data-t="sys">SİSTEM</button>
+    </nav>
+  </header>
+
+  <div class="scroll">
+    <div class="tab" id="tab_live">
+      <section>
+        <button id="lockBtn"></button>
+        <div class="row"><button id="tapBtn"><kbd>T</kbd>Tap tempo</button><button id="dropBtn" class="hot"><kbd>D</kbd>DROP!</button></div>
+        <div class="row">
+          <button id="strobeBtn" title="Basılı tut"><kbd>S</kbd>Strobe</button>
+          <button id="glitchBtn" title="Basılı tut"><kbd>G</kbd>Glitch</button>
+          <button id="invertBtn" title="Basılı tut"><kbd>I</kbd>Negatif</button>
+          <button id="blackBtn"><kbd>B</kbd>Siyah</button>
+        </div>
+        <div id="status"></div>
+      </section>
+      <section>
+        <h2>Tempo</h2>
+        <div class="tempo">
+          <button id="bpmDown" title="−1 BPM  ( [ )">−1</button>
+          <button id="bpmDownF" title="−0.1 BPM  ( ⇧[ )">−.1</button>
+          <input id="bpmIn" type="number" min="50" max="220" step="0.1">
+          <button id="bpmUpF" title="+0.1 BPM  ( ⇧] )">+.1</button>
+          <button id="bpmUp" title="+1 BPM  ( ] )">+1</button>
+        </div>
+        <div class="row">
+          <button id="bpmHalf">½×</button><button id="bpmDouble">2×</button>
+          <button id="downBtn" title="Bir sonraki vuruş = barın 1. vuruşu"><kbd>V</kbd>1'e senkron</button>
+          <div id="barDots"><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div id="g_tempo"></div>
+        <div class="hint">Kilitli: saat BPM'de akar ve müziğe kendini kilitler; break'te bile groove'u korur. MIDI Clock: Traktor gibi yazılımlardan gelen tempoyu takip eder (Sistem → MIDI bağla).</div>
+      </section>
+      <section>
+        <h2>Sahneler</h2>
+        <div id="scenes"></div>
+        <div class="hint" style="margin-top:6px">Yeşil nokta = otomatik listede. Noktaya tıklayarak sahneyi otomatik geçişten çıkarabilirsin.</div>
+      </section>
+      <section id="g_auto"><h2>Otomatik</h2></section>
+      <section>
+        <h2>Ses</h2>
+        <div class="row"><button id="micBtn">🎤 Ses girişi</button><button id="demoBtn">Demo şarkı</button></div>
+        <select id="dev"></select>
+        <div class="stats">
+          <div>BPM<b id="bpm">–</b></div>
+          <div>BÖLÜM<b id="phase">–</b></div>
+          <div>VURUŞ<b id="beatN">0</b></div>
+        </div>
+        <div class="meters">
+          BASS<div class="meter"><i id="m_bass"></i></div>
+          MID<div class="meter"><i id="m_mid"></i></div>
+          TİZ<div class="meter"><i id="m_high"></i></div>
+          ENERJİ<div class="meter"><i id="m_energy"></i></div>
+        </div>
+        <div id="g_audio"></div>
+      </section>
+    </div>
+
+    <div class="tab" id="tab_look" hidden>
+      <section id="g_color"><h2>Renk</h2></section>
+      <section id="g_motion"><h2>Hareket</h2></section>
+      <section id="g_fx"><h2>Efektler</h2></section>
+      <section id="g_trans"><h2>Geçişler</h2></section>
+      <section id="g_scene"><h2>Sahne ayarları</h2>
+      </section>
+      <section><div class="hint">İpucu: bir kaydırıcıya çift tıklarsan varsayılan değerine döner.</div></section>
+    </div>
+
+    <div class="tab" id="tab_text" hidden>
+      <section id="g_text"><h2>Yazı</h2></section>
+      <section>
+        <label>Sahne ismi</label>
+        <input id="name" maxlength="24">
+        <label>Mesajlar (her satır bir mesaj)</label>
+        <textarea id="msgs"></textarea>
+      </section>
+      <section>
+        <h2>Atatürk fotoğrafı</h2>
+        <div class="row"><button id="imgBtn">📷 Fotoğraf seç</button><button id="imgClr">Kaldır</button></div>
+        <div class="hint" id="imgHint">Fotoğrafı ekrana sürükleyip bırakabilirsin. Siyah-beyaz, arka planı şeffaf PNG en iyi sonucu verir.</div>
+        <input type="file" id="imgFile" accept="image/*" hidden>
+      </section>
+    </div>
+
+    <div class="tab" id="tab_sys" hidden>
+      <section>
+        <h2>Presetler</h2>
+        <div id="presets"></div>
+        <button id="resetBtn" class="wide">Tüm görünüm ayarlarını sıfırla</button>
+      </section>
+      <section>
+        <h2>Çıkış</h2>
+        <div id="g_quality"></div>
+        <div class="row"><button id="fsBtn"><kbd>F</kbd>Tam ekran</button><button id="hideBtn"><kbd>H</kbd>Paneli gizle</button></div>
+        <div class="row"><button id="recBtn">● Video kaydet (R)</button></div>
+      </section>
+      <section>
+        <h2>MIDI kontrolcü</h2>
+        <div class="row"><button id="midiBtn">🎛 MIDI bağla</button></div>
+        <div class="hint">Durum: <span id="midiState">bağlı değil</span> <span id="midiLast" style="float:right"></span></div>
+        <div class="hint" id="midiMap" style="margin-top:4px"></div>
+      </section>
+      <section class="keys">
+        <h2 style="column-span:all">Klavye</h2>
+        <div><kbd>1</kbd>–<kbd>0</kbd> sahne 1–10</div>
+        <div><kbd>⇧</kbd>+<kbd>1</kbd>–<kbd>0</kbd> sahne 11–20</div>
+        <div><kbd>⌥</kbd>+<kbd>1</kbd>–<kbd>7</kbd> isim sahneleri</div>
+        <div><kbd>[</kbd><kbd>]</kbd> BPM ∓1 (⇧ ile ∓0.1)</div>
+        <div><kbd>V</kbd> 1. vuruşa senkron</div>
+        <div><kbd>J</kbd> feedback tüneli</div>
+        <div><kbd>←</kbd><kbd>→</kbd> önceki/sonraki</div>
+        <div><kbd>L</kbd> sahneyi kilitle</div>
+        <div><kbd>D</kbd> drop</div>
+        <div><kbd>␣</kbd> otomatik mod</div>
+        <div><kbd>S</kbd> strobe (basılı)</div>
+        <div><kbd>G</kbd> glitch (basılı)</div>
+        <div><kbd>I</kbd> negatif (basılı)</div>
+        <div><kbd>B</kbd> siyah ekran</div>
+        <div><kbd>K</kbd> ayna modu</div>
+        <div><kbd>Q</kbd> EQ katmanı</div>
+        <div><kbd>W</kbd> geçiş tipi</div>
+        <div><kbd>E</kbd> iz efekti</div>
+        <div><kbd>X</kbd> RGB kayma</div>
+        <div><kbd>C</kbd> renk paleti</div>
+        <div><kbd>N</kbd> yazı modu</div>
+        <div><kbd>T</kbd> tap tempo</div>
+        <div><kbd>F1</kbd>–<kbd>F6</kbd> preset</div>
+        <div><kbd>R</kbd> kayıt</div>
+        <div><kbd>F</kbd> tam ekran</div>
+        <div><kbd>H</kbd> panel</div>
+      </section>
+    </div>
+  </div>
+</aside>
+
+<script>
+  if (location.protocol === 'file:') document.getElementById('fileWarn').style.display = 'flex';
+</script>
+<script type="importmap">
+{ "imports": {
+  "three": "./lib/three/build/three.module.js",
+  "three/addons/": "./lib/three/examples/jsm/"
+} }
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

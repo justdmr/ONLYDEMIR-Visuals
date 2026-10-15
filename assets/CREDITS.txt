@@ -1,0 +1,22 @@
+ONLYDEMIR Visuals — third-party assets
+
+HDRI environments (CC0, public domain) — Poly Haven, https://polyhaven.com
+  studio_small_09, neon_photostudio, shanghai_bund, rooftop_night
+
+3D models (CC0, public domain) — Poly Haven, https://polyhaven.com
+  marble_bust_01, Television_01
+
+Earth textures — Solar System Scope, https://www.solarsystemscope.com/textures/
+  4k_earth_daymap / 4k_earth_nightmap / 4k_earth_clouds (resized from 8K)
+  License: CC BY 4.0 — credit "Textures: Solar System Scope" if you publish recordings.
+  earth_specular_2048 / earth_normal_2048 — three.js example assets (NASA-derived)
+
+Photoreal stills (assets/photo/*.jpg)
+  Generated with FLUX.1 [schnell] (Black Forest Labs, Apache-2.0). All people are fictional,
+  not photographs of real persons.
+
+Depth maps (assets/photo/*_depth.png)
+  Depth Anything V2 Small (Apache-2.0), run locally with tools/depth_local.py
+
+Fonts — Anton and Exo 2 (SIL Open Font License), via Fontsource
+three.js r160 (MIT)
