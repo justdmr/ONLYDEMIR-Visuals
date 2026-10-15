@@ -1,7 +1,7 @@
 // 2.5D "living photo" scenes: a photoreal still + its depth map becomes a displaced mesh filmed by a moving camera,
 // with sparkle glints found on the image's brightest points and per-scene atmospherics (rain, dust, fireworks, flares).
 import * as THREE from 'three';
-import { canvasTex } from '../common.js';
+import { canvasTex, sceneOpt } from '../common.js';
 
 const TAU = Math.PI * 2;
 const ASSET = 'assets/photo/';
@@ -275,7 +275,7 @@ void main(){ float a=texture2D(uTex,gl_PointCoord).a; gl_FragColor=vec4(vec3(1.0
 
   update(S, t, dt) {
     const v = this.def.variants;
-    const want = Math.min(v.length - 1, this.key === 'p_iced' ? (S.icedVariant || 0) : 0);
+    const want = Math.min(v.length - 1, sceneOpt(S, this.key, 'variant', this.key === 'p_iced' ? (S.icedVariant || 0) : 0));
     if (want !== this.variant && !this.loading) {
       this.variant = want;
       this.loading = this.load(v[want]).finally(() => { this.loading = null; });
@@ -290,13 +290,13 @@ void main(){ float a=texture2D(uTex,gl_PointCoord).a; gl_FragColor=vec4(vec3(1.0
     if (S.beatCount !== this.lb) { this.lb = S.beatCount; this.kick = 1; }
     this.kick *= Math.exp(-dt * 7);
     const bar = (S.clockPhase || t * 2) * Math.PI / 4;
-    const amp = (S.photoMotion ?? 1);
+    const amp = sceneOpt(S, this.key, 'motion', S.photoMotion ?? 1);
     const cx = Math.sin(bar) * 0.55 * amp + Math.sin(t * 0.13) * 0.25 * amp;
     const cy = Math.cos(bar * 0.5) * 0.22 * amp + Math.sin(t * 0.09) * 0.12 * amp;
     const push = (Math.sin(t * 0.07) * 0.5 + 0.5) * 0.45 * amp + this.kick * 0.25 * amp * S.react + S.drop * 1.4;
     // cut to a new framing every N beats (snap back wide on drops)
-    if (S.photoCuts !== false && this.framings) {
-      const every = S.cutEvery || 8;
+    if (sceneOpt(S, this.key, 'cuts', S.photoCuts !== false) && this.framings) {
+      const every = sceneOpt(S, this.key, 'every', S.cutEvery || 8);
       if (S.beatCount !== this.lcut && S.beatCount % every === 0) {
         this.lcut = S.beatCount;
         const opts = this.framings.filter(f => f !== this.frameTo);

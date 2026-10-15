@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
-import { chromeText, backgroundQuad, makeDust, makeSparkles, glowSprite, canvasTex, Spinner, ease } from '../common.js';
+import { chromeText, backgroundQuad, makeDust, makeSparkles, glowSprite, canvasTex, Spinner, ease, sceneOpt } from '../common.js';
 
 const TAU = Math.PI * 2;
 
@@ -268,7 +268,7 @@ void main(){ float i=pow(max(0.78-dot(vV,vec3(0.0,0.0,1.0)),0.0),3.0); float s=0
     this.ring.children[0] && (this.ring.children[0].rotation.y = -this.orbit - this.spinner.update(S, dt));
     this.ring.scale.setScalar(1 + S.beat * 0.008);
     this.led.material.color.setScalar(S.beatPhase < 0.15 ? 2 : 0.15).multiply(this.ctx.c1);
-    this.astro.visible = S.astro !== false;
+    this.astro.visible = sceneOpt(S, 'earth', 'astro', S.astro !== false);
     this.camera.position.set(Math.sin(t * 0.05) * 3, 2 + Math.sin(t * 0.07), 44 - S.drop * 4);
     this.camera.lookAt(1.5, 0, 0);
   }

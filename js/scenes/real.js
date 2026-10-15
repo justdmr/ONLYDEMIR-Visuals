@@ -1,7 +1,7 @@
 // Photoreal scenes built on real assets: AI-photo portrait + 3D chain, HDRI city panorama, scanned marble bust, wall of scanned TVs.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { chromeText, makeSparkles, makeDust, glowSprite, canvasTex, Spinner } from '../common.js';
+import { chromeText, makeSparkles, makeDust, glowSprite, canvasTex, Spinner, sceneOpt } from '../common.js';
 
 const TAU = Math.PI * 2;
 const gltf = new GLTFLoader();
@@ -334,7 +334,7 @@ export class BustScene {
       }
     }
     if (this.mesh) {
-      const fin = this.fins[S.bustFin || 0] || this.fins[0];
+      const fin = this.fins[sceneOpt(S, 'bust', 'fin', S.bustFin || 0)] || this.fins[0];
       if (this.mesh.material !== fin) this.mesh.material = fin;
     }
     this.bust.rotation.y = t * 0.15 + this.spinner.update(S, dt);

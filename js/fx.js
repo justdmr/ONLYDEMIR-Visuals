@@ -93,6 +93,7 @@ void main(){
   vec2 uv=(vUv-0.5)/(1.0+uPunch)+0.5+uShake;
   uv=mirror(uv);
   vec3 c=texture2D(tA,uv).rgb;
+  if(!(dot(c,c)<1e9)) c=vec3(0.0);
   if(uMix<1.0){
     float m=uMix, mid=1.0-abs(m*2.0-1.0);
     if(uTrans<0.5){
@@ -136,6 +137,7 @@ void main(){
   float sw=exp(-pow((tuv.x+(1.0-tuv.y)*0.35-uTextSweep)*14.0,2.0));
   c+=vec3(1.0,0.97,0.92)*sw*smoothstep(0.55,1.0,t.a)*dot(t.rgb,vec3(0.33))*uTextShine*uTextAlpha*2.5;
   c+=lin(uC1)*ghost*(1.0-t.a)*uTextGlitch*uTextAlpha*1.5;
+  if(!(dot(c,c)<1e9)) c=vec3(0.0);
   gl_FragColor=vec4(c,1.0);
 }`
 };
@@ -281,11 +283,13 @@ void main(){ vec3 s=vec3(0.0); for(int y=0;y<4;y++) for(int x=0;x<4;x++) s+=text
 uniform sampler2D t, tAvg; uniform vec2 uTexel; uniform float uThresh, uAdapt; varying vec2 vUv;
 float lum(vec3 c){ return max(c.r,max(c.g,c.b)); }
 void main(){
-  float th=uThresh+uAdapt*lum(texture2D(tAvg,vUv).rgb);
+  float al=lum(texture2D(tAvg,vUv).rgb);
+  float th=uThresh+uAdapt*(al<60000.0?al:0.0);
   vec3 c=vec3(0.0);
   for(int i=0;i<4;i++){
     vec2 o=vec2(i==0||i==2?-1.0:1.0,i<2?-1.0:1.0);
     vec3 s=texture2D(t,vUv+o*uTexel).rgb; float l=lum(s);
+    if(!(l<60000.0)) { s=vec3(0.0); l=0.0; }   // drop NaN / half-float overflow before it smears across the blur chain
     float k=max(l-th,0.0); c+=s*(k*k/(k+th))/max(l,1e-4);
   }
   c*=0.25;
@@ -331,9 +335,13 @@ void main(){ vec3 s=vec3(0.0); float w=0.0;
 uniform sampler2D tScene, tStreak, tGhost, tTiny, tDirt; uniform float uStreak, uGhost, uDirt, uAspect; uniform vec3 uTint; varying vec2 vUv;
 void main(){
   vec3 c=texture2D(tScene,vUv).rgb;
+  if(!(dot(c,c)<1e9)) c=vec3(0.0);
   vec2 duv=(vUv-0.5)*vec2(min(1.0,uAspect/1.7778),min(1.0,1.7778/uAspect))+0.5;
   float dirt=texture2D(tDirt,duv).r;
   vec3 st=texture2D(tStreak,vUv).rgb, gh=texture2D(tGhost,vUv).rgb, glow=texture2D(tTiny,vUv).rgb;
+  if(!(dot(st,st)<1e9)) st=vec3(0.0);
+  if(!(dot(gh,gh)<1e9)) gh=vec3(0.0);
+  if(!(dot(glow,glow)<1e9)) glow=vec3(0.0);
   float sl=dot(st,vec3(0.3333));
   c+=uTint*sl*uStreak*2.0*(1.0+dirt*uDirt*1.5);
   c+=gh*uGhost*2.5*(1.0+dirt*uDirt*2.0);

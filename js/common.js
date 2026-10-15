@@ -22,6 +22,8 @@ export function hexVec(hex, v = new THREE.Vector3()) {
   const n = parseInt(hex.slice(1), 16);
   return v.set((n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255);
 }
+// per-scene option (S.sc[sceneKey][name]) with a fallback to the old global setting
+export const sceneOpt = (S, key, name, def) => S.sc?.[key]?.[name] ?? def;
 export const ease = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 
 // ---------- GLSL ----------

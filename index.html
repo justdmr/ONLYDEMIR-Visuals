@@ -85,13 +85,30 @@
   label kbd { margin: 0 0 0 6px; }
   .cat { font-size: 10px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; margin: 8px 0 5px; }
   .cat:first-child { margin-top: 0; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 5px; }
   .scene { display: flex; align-items: center; text-align: left; padding: 6px 7px; }
   .scene span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .scene i { font-style: normal; font-size: 9px; color: #6f6; padding: 2px 3px; opacity: .8; }
-  .scene.out i { color: #555; }
   .scene.out span { opacity: .55; }
   .scene.prev { border-color: #fff; }
+  .scene .chk { flex: none; width: 13px; height: 13px; margin-right: 6px; border: 1px solid #7a6468; border-radius: 3px; box-sizing: border-box;
+    display: inline-flex; align-items: center; justify-content: center; font: 700 10px/1 -apple-system, sans-serif; font-style: normal; }
+  .scene:not(.out) .chk { background: var(--red); border-color: var(--red); }
+  .scene:not(.out) .chk::after { content: '✓'; color: #fff; }
+  .scene.on:not(.out) .chk { background: #fff; border-color: #fff; }
+  .scene.on:not(.out) .chk::after { color: var(--red); }
+  .scene .gear { flex: none; font-weight: 400; opacity: .55; padding: 0 1px 0 5px; font-size: 13px; }
+  .scene .gear:hover, .scene.open .gear { opacity: 1; }
+  .scene.open { border-color: var(--red); }
+  .sopts { grid-column: 1 / -1; background: rgba(255,255,255,.04); border: 1px solid rgba(227,10,23,.45); border-radius: 8px; padding: 8px 10px 2px; margin: 0 0 4px; }
+  .sopts h3 { display: flex; justify-content: space-between; align-items: center; margin: 0 0 6px; font-size: 12px; font-weight: 700; }
+  button.mini { padding: 2px 8px; font-size: 10px; flex: none; }
+  .sub { font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--red); margin: 10px 0 4px; font-weight: 700; }
+  .sub:first-child { margin-top: 0; }
+  .row.loop button { font-size: 11px; padding: 5px 4px; }
+  #loopInfo { margin: -2px 0 6px; }
+  .packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 6px; }
+  .packs button { padding: 8px 4px; font-weight: 700; font-size: 11px; letter-spacing: .04em; }
+  .packs button small { display: block; font-weight: 400; color: var(--muted); font-size: 9px; letter-spacing: 0; margin-top: 2px; }
   #lockBtn { width: 100%; padding: 10px; font-weight: 700; margin-bottom: 6px; }
   #lockBtn.on { background: #fff; color: #000; border-color: #fff; }
   .seg { display: flex; flex-wrap: wrap; border: 1px solid #3a2328; border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
@@ -187,10 +204,16 @@
       </section>
       <section>
         <h2>Sahneler</h2>
+        <div id="g_auto"></div>
+        <div class="row loop">
+          <button id="loopAll" title="Tüm sahneleri döngüye al">Tümünü seç</button>
+          <button id="loopCat" title="Sadece ekrandaki sahnenin kategorisi">Bu kategori</button>
+          <button id="loopNone" title="Döngüyü boşalt, sonra istediklerini işaretle">Temizle</button>
+        </div>
+        <div class="hint" id="loopInfo"></div>
         <div id="scenes"></div>
-        <div class="hint" style="margin-top:6px">Yeşil nokta = otomatik listede. Noktaya tıklayarak sahneyi otomatik geçişten çıkarabilirsin.</div>
+        <div class="hint" style="margin-top:6px">Sahneye tıkla = ekrana al. <b>☑</b> kutusu = döngüde (otomatik geçiş sadece işaretlileri çalar). <b>⚙</b> = o sahnenin kendi ayarları.</div>
       </section>
-      <section id="g_auto"><h2>Otomatik</h2></section>
       <section>
         <h2>Ses</h2>
         <div class="row"><button id="micBtn">🎤 Ses girişi</button><button id="demoBtn">Demo şarkı</button></div>
@@ -211,12 +234,12 @@
     </div>
 
     <div class="tab" id="tab_look" hidden>
+      <section><h2>Hazır görünümler</h2><div id="packs" class="packs"></div>
+        <div class="hint">Tek tıkla tüm görünüm: renk, font, yazı stili, lens, efektler. Tempo ve ses ayarların değişmez.</div></section>
       <section id="g_color"><h2>Renk</h2></section>
       <section id="g_motion"><h2>Hareket</h2></section>
       <section id="g_fx"><h2>Efektler</h2></section>
       <section id="g_trans"><h2>Geçişler</h2></section>
-      <section id="g_scene"><h2>Sahne ayarları</h2>
-      </section>
       <section><div class="hint">İpucu: bir kaydırıcıya çift tıklarsan varsayılan değerine döner.</div></section>
     </div>
 

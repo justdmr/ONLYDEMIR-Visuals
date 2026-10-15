@@ -14,6 +14,7 @@ import { BeatClock, CLOCK_MODES } from './clock.js';
 import { CityScene, BustScene, TVWallScene, BUST_FIN } from './scenes/real.js';
 import { PhotoScene, PHOTO_DEFS } from './scenes/photo.js';
 import { Sting } from './sting.js';
+import { IronScene, ParticleEntityScene } from './scenes/entity.js';
 
 // ---------- settings ----------
 const store = {
@@ -43,7 +44,7 @@ const DEFAULTS = {
   scene: 0, name: 'ONLYDEMIR', msgs: DEFAULT_MSGS, textMode: 0, msgEvery: 8, font: 0, textSize: 0.7, textPlace: 0, corner: false, textGlow: 0.25,
   auto: 'director', autoEvery: 32, lock: false, off: ['tunnel', 'fireworks', 'led', 'scope', 'rain', 'synth', 'lasers'], palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', bpm: 128,
   speed: 1, react: 1, beatSens: 1.3, bloom: 1, glitchAmt: 0.7, rgbAmt: 0.6, grain: 0.6, trails: 0, punch: 0.35, shake: 0.2, beatFlash: 0,
-  hue: 0, sat: 1, contrast: 1, vignette: 1, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, textStyle: 0, textShine: 0.6, lensStreak: 0.6, lensGhost: 0.35, lensDirt: 0.5, flareTint: 0, sting: true, master: 1, quality: 1,
+  hue: 0, sat: 1, contrast: 1, vignette: 1, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, textStyle: 0, textShine: 0.6, sc: {}, lensStreak: 0.6, lensGhost: 0.35, lensDirt: 0.5, flareTint: 0, sting: true, master: 1, quality: 1,
   clock: 'lock', offsetMs: 0, strobeDiv: 4, fb: 0, fbZoom: 1.02, fbRot: 0.004, fbHue: 0, astro: true, bustFin: 0, env: 'studio', icedVariant: 0, photoMotion: 1, photoCuts: true, cutEvery: 8, tone: 1, exposure: 1
 };
 const CFG_KEYS = Object.keys(DEFAULTS);
@@ -90,7 +91,7 @@ audio.on('onset', () => clock.onset());
 ctx.U.uSpec.value.image.data = audio.spec;
 ctx.U.uWave.value.image.data = audio.wave;
 
-const CATS = { pro: 'Fotogerçekçi · 2.5D', name: 'İsim · Sahne', '3d': '3D · Logo', tr: '29 Ekim', eq: 'Ekolayzır', psy: 'Psikedelik' };
+const CATS = { pro: 'Fotogerçekçi · 2.5D', ent: 'Sinematik 3D · Demir', name: 'İsim · Sahne', '3d': '3D · Logo', tr: '29 Ekim', eq: 'Ekolayzır', psy: 'Psikedelik' };
 // photoreal 2.5D scenes come first; skip any whose image/depth pair is missing
 const photoOk = await Promise.all(PHOTO_DEFS.map(d => fetch(`assets/photo/${d.variants[0]}_depth.png`, { method: 'HEAD' }).then(r => r.ok).catch(() => false)));
 const scenes = [
@@ -100,7 +101,9 @@ const scenes = [
   liquidScene(ctx), fractalScene(ctx), new RingsScene(ctx), radialScene(ctx), new TerrainScene(ctx),
   ledScene(ctx), scopeScene(ctx), rainScene(ctx), synthScene(ctx), laserScene(ctx),
   new CityScene(ctx), new BustScene(ctx), new TVWallScene(ctx),
-  new EarthScene(ctx), new BlackHoleScene(ctx), new NeonScene(ctx), new VinylScene(ctx), new BalloonScene(ctx), new HologramScene(ctx)
+  new EarthScene(ctx), new BlackHoleScene(ctx), new NeonScene(ctx), new VinylScene(ctx), new BalloonScene(ctx), new HologramScene(ctx),
+  // appended last so existing keyboard / MIDI pad numbers keep pointing at the same scenes
+  new IronScene(ctx), new ParticleEntityScene(ctx)
 ];
 const DEFAULT_CAT = { logo: '3d', emblem: '3d', particles: '3d', flag: 'tr', 29: 'tr', spectrum: 'eq', tunnel: 'tr', ata: 'tr', fireworks: 'tr' };
 scenes.forEach(s => { s.cat = s.cat || DEFAULT_CAT[s.key] || 'psy'; });
@@ -114,6 +117,12 @@ function setScene(i, dur = S.transDur) {
   prev = cur; cur = i; mix = 0; transDur = Math.max(0.05, dur);
   S.scene = cur; save();
   refreshUI();
+}
+// next ticked scene in grid order (sequential loop)
+function nextInLoop() {
+  const n = scenes.length;
+  for (let d = 1; d <= n; d++) { const i = (cur + d) % n; if (!S.off.includes(scenes[i].key)) return i; }
+  return cur;
 }
 // random scene from the auto playlist, optionally limited to some energies
 function pick(energies) {
@@ -131,7 +140,8 @@ clock.onBeat(() => {
   S.beatCount++;
   if (S.beatCount % S.msgEvery === 0) S.msgFlash = 1;
   if (S.lock || S.beatCount % S.autoEvery) return;
-  if (S.auto === 'timed') setScene(pick());
+  if (S.auto === 'seq') setScene(nextInLoop());
+  else if (S.auto === 'timed') setScene(pick());
   else if (S.auto === 'director' && S.phase === 'main') setScene(pick(['mid', 'high']));
 });
 audio.on('break', () => { if (!S.lock && S.auto === 'director') setScene(pick(['low', 'mid']), Math.max(S.transDur, 2)); });
@@ -142,7 +152,7 @@ function doDrop() {
   S.dropCount++;
   S.msgFlash = 1;
   if (S.sting) sting.fire(S);
-  if (!S.lock && S.auto !== 'off') setScene(pick(['high']), 0.3);
+  if (!S.lock && S.auto !== 'off') setScene(S.auto === 'seq' ? nextInLoop() : pick(['high']), 0.3);
   flashUI('dropBtn');
 }
 
@@ -179,10 +189,11 @@ function resize() {
 
 // ---------- loop ----------
 let lastT = performance.now(), T = 0;
-const follow = (c, t, dt, k) => c + (t - c) * Math.min(1, dt * k);
+const follow = (c, t, dt, k) => c + (t - c) * Math.min(1, Math.max(0, dt * k));
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.05, (now - lastT) / 1000);
+  // never negative: a timestamp that runs backwards would push every decay/follow the wrong way (black frames)
+  const dt = Math.max(0, Math.min(0.05, (now - lastT) / 1000));
   lastT = now;
   const sdt = dt * S.speed;
   T += sdt;
@@ -365,7 +376,7 @@ const $ = id => document.getElementById(id);
 const ui = $('ui');
 function status(msg) { $('status').textContent = msg; }
 function flashUI(id) { const el = $(id); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 300); }
-const keyLabel = i => (i < 10 ? '' : i < 20 ? '⇧' : '⌥') + String((i % 10 + 1) % 10);
+const keyLabel = i => i >= 30 ? '·' : (i < 10 ? '' : i < 20 ? '⇧' : '⌥') + String((i % 10 + 1) % 10);
 
 // tabs
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
@@ -375,35 +386,103 @@ document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
 });
 (document.querySelector(`#tabs [data-t="${store.get('tab', 'live')}"]`) || document.querySelector('#tabs button')).click();
 
-// scene grid, grouped by category; the dot toggles membership of the auto playlist
+// ---------- per-scene settings (stored in S.sc[sceneKey]; the old global value is the default) ----------
+function sceneOptions(s) {
+  const k = s.key;
+  const o = (d, def) => ({
+    ...d,
+    get: () => S.sc?.[k]?.[d.name] ?? def(),
+    set: v => { S.sc = { ...S.sc, [k]: { ...(S.sc?.[k] || {}), [d.name]: v } }; },
+    reset: () => { const c = { ...(S.sc?.[k] || {}) }; delete c[d.name]; S.sc = { ...S.sc, [k]: c }; }
+  });
+  const x = v => v.toFixed(2) + '×';
+  const motion = def => o({ type: 'range', name: 'motion', label: 'Kamera hareketi', min: 0, max: 2, fmt: x }, def);
+  const photo = [
+    motion(() => S.photoMotion ?? 1),
+    o({ type: 'toggle', name: 'cuts', label: 'BPM kurgu kesmeleri' }, () => S.photoCuts !== false),
+    o({ type: 'seg', name: 'every', label: 'Kesme sıklığı (vuruş)', options: ['4', '8', '16', '32'], values: [4, 8, 16, 32] }, () => S.cutEvery || 8)
+  ];
+  if (k === 'p_iced') return [o({ type: 'seg', name: 'variant', label: 'Çekim', options: ['Yakın plan', 'Portre', 'Kolye'], values: [0, 1, 2] }, () => S.icedVariant || 0), ...photo];
+  if (k.startsWith('p_')) return photo;
+  if (k === 'bust') return [o({ type: 'seg', name: 'fin', label: 'Yüzey', options: BUST_FIN }, () => S.bustFin || 0)];
+  if (k === 'iron') return [
+    motion(() => 1),
+    o({ type: 'range', name: 'heat', label: 'Erimiş damarların ısısı', min: 0, max: 2, fmt: x }, () => 1),
+    o({ type: 'toggle', name: 'beams', label: 'Işık huzmeleri' }, () => true),
+    o({ type: 'toggle', name: 'cuts', label: 'Kamera açısı değişimi' }, () => true),
+    o({ type: 'seg', name: 'every', label: 'Açı değişimi (vuruş)', options: ['8', '16', '32'], values: [8, 16, 32] }, () => 16)
+  ];
+  if (k === 'ghost') return [
+    motion(() => 1),
+    o({ type: 'range', name: 'bright', label: 'Parlaklık', min: 0.3, max: 2, fmt: x }, () => 1),
+    o({ type: 'seg', name: 'scan', label: 'Tarama çizgisi (vuruş)', options: ['Kapalı', '8', '16', '32'], values: [0, 8, 16, 32] }, () => 16)
+  ];
+  const list = [];
+  if (k === 'earth') list.push(o({ type: 'toggle', name: 'astro', label: 'Astronot' }, () => S.astro !== false));
+  // 3D scenes that use the shared chrome reflections can pick their own HDRI
+  if (s.scene && !s.ownEnv && !s.src) list.push(o({ type: 'seg', name: 'env', label: 'Krom yansıması (gerçek HDRI)', options: Object.values(ENVS).map(e => e[0]), values: Object.keys(ENVS) }, () => S.env));
+  return list;
+}
+
+// scene grid, grouped by category. The box on each scene = "in the loop" (auto modes only play ticked scenes);
+// the gear opens that scene's own settings right under it.
 const sceneBtns = [];
+let openOpts = null, panelBindings = [];
+function toggleLoop(key) { S.off = S.off.includes(key) ? S.off.filter(k => k !== key) : [...S.off, key]; save(); refreshUI(); }
+function closeOpts() { if (openOpts) { openOpts.el.remove(); openOpts.btn.classList.remove('open'); openOpts = null; panelBindings = []; } }
+function openSceneOpts(i, grid) {
+  const was = openOpts && openOpts.i === i;
+  closeOpts();
+  if (was) return;
+  const s = scenes[i], defs = sceneOptions(s), b = sceneBtns[i];
+  const el = document.createElement('div');
+  el.className = 'sopts';
+  el.innerHTML = `<h3><span>⚙ ${s.name}</span><button class="mini" title="Bu sahnenin ayarlarını varsayılana döndür">Sıfırla</button></h3>`;
+  el.querySelector('.mini').onclick = () => { const sc = { ...S.sc }; delete sc[s.key]; S.sc = sc; save(); syncAll(); };
+  defs.forEach(d => el.appendChild(ctl(d, panelBindings)));
+  // insert after the end of the clicked button's row so the panel sits right under it
+  const items = [...grid.children].filter(c => c.classList.contains('scene'));
+  const pos = items.indexOf(b);
+  const rowEnd = items[Math.min(items.length - 1, pos | 1)];
+  rowEnd.after(el);
+  b.classList.add('open');
+  openOpts = { i, el, btn: b };
+  panelBindings.forEach(f => f());
+}
 for (const [cat, title] of Object.entries(CATS)) {
+  const list = scenes.map((s, i) => i).filter(i => scenes[i].cat === cat);
+  if (!list.length) continue;
   const h = document.createElement('div');
   h.className = 'cat';
   h.textContent = title;
   $('scenes').appendChild(h);
   const grid = document.createElement('div');
   grid.className = 'grid';
-  scenes.forEach((s, i) => {
-    if (s.cat !== cat) return;
+  list.forEach(i => {
+    const s = scenes[i];
     const b = document.createElement('button');
     b.className = 'scene';
-    b.innerHTML = `<kbd>${keyLabel(i)}</kbd><span>${s.name}</span><i title="Otomatik listede">●</i>`;
+    const gear = sceneOptions(s).length ? '<b class="gear" title="Bu sahnenin ayarları">⚙</b>' : '';
+    b.innerHTML = `<i class="chk" title="Döngüde (otomatik geçiş sadece işaretli sahneleri çalar)"></i><kbd>${keyLabel(i)}</kbd><span>${s.name}</span>${gear}`;
     b.onclick = e => {
-      if (e.target.tagName === 'I') {
-        S.off = S.off.includes(s.key) ? S.off.filter(k => k !== s.key) : [...S.off, s.key];
-        save(); refreshUI();
-      } else setScene(i);
+      if (e.target.classList.contains('chk')) toggleLoop(s.key);
+      else if (e.target.classList.contains('gear')) openSceneOpts(i, grid);
+      else setScene(i);
     };
     sceneBtns[i] = b;
     grid.appendChild(b);
   });
   $('scenes').appendChild(grid);
 }
+$('loopAll').onclick = () => { S.off = []; save(); refreshUI(); };
+$('loopNone').onclick = () => { S.off = scenes.map(s => s.key); save(); refreshUI(); };
+$('loopCat').onclick = () => { const c = scenes[cur].cat; S.off = scenes.filter(s => s.cat !== c).map(s => s.key); save(); refreshUI(); };
 
-// generic controls
+// generic controls; a def either names a global key (def.key) or brings its own get/set/def (per-scene options)
 const bindings = [];
-function ctl(def) {
+const getV = d => d.get ? d.get() : S[d.key];
+const setV = (d, v) => { if (d.set) d.set(v); else S[d.key] = v; save(); };
+function ctl(def, list = bindings) {
   const el = document.createElement('div');
   el.className = 'ctl';
   const label = def.label ? `<label>${def.label}${def.type === 'range' ? '<span></span>' : ''}</label>` : '';
@@ -411,9 +490,9 @@ function ctl(def) {
     el.innerHTML = `${label}<input type="range" min="${def.min}" max="${def.max}" step="${def.step || 0.01}">`;
     const inp = el.querySelector('input'), out = el.querySelector('span');
     const fmt = def.fmt || (v => v.toFixed(2));
-    inp.oninput = () => { S[def.key] = +inp.value; out.textContent = fmt(S[def.key]); save(); };
-    inp.ondblclick = () => { S[def.key] = DEFAULTS[def.key]; save(); syncAll(); };
-    bindings.push(() => { inp.value = S[def.key]; out.textContent = fmt(+S[def.key]); });
+    inp.oninput = () => { setV(def, +inp.value); out.textContent = fmt(+inp.value); };
+    inp.ondblclick = () => { if (def.reset) def.reset(); else S[def.key] = DEFAULTS[def.key]; save(); syncAll(); };
+    list.push(() => { const v = +getV(def); inp.value = v; out.textContent = fmt(v); });
   } else if (def.type === 'seg') {
     el.innerHTML = `${label}<div class="seg"></div>`;
     const seg = el.querySelector('.seg');
@@ -421,16 +500,19 @@ function ctl(def) {
     const btns = def.options.map((o, i) => {
       const b = document.createElement('button');
       b.textContent = o;
-      b.onclick = () => { S[def.key] = values[i]; save(); syncAll(); };
+      b.onclick = () => { setV(def, values[i]); syncAll(); };
       seg.appendChild(b);
       return b;
     });
-    bindings.push(() => btns.forEach((b, i) => b.classList.toggle('on', S[def.key] === values[i])));
+    list.push(() => btns.forEach((b, i) => b.classList.toggle('on', getV(def) === values[i])));
   } else if (def.type === 'toggle') {
     el.innerHTML = `<button class="wide">${def.label}</button>`;
     const b = el.querySelector('button');
-    b.onclick = () => { S[def.key] = !S[def.key]; save(); syncAll(); };
-    bindings.push(() => b.classList.toggle('on', !!S[def.key]));
+    b.onclick = () => { setV(def, !getV(def)); syncAll(); };
+    list.push(() => b.classList.toggle('on', !!getV(def)));
+  } else if (def.type === 'head') {
+    el.className = 'sub';
+    el.textContent = def.label;
   } else if (def.type === 'colors') {
     el.innerHTML = `<label>Renk paleti <kbd>C</kbd></label><div class="pal"></div><div class="row"><label class="cp">Ana renk <input type="color" data-k="c1"></label><label class="cp">İkinci renk <input type="color" data-k="c2"></label></div>`;
     const pal = el.querySelector('.pal');
@@ -443,7 +525,7 @@ function ctl(def) {
     });
     const inputs = el.querySelectorAll('input');
     inputs.forEach(inp => inp.oninput = () => { S[inp.dataset.k] = inp.value; S.palette = 'custom'; save(); syncAll(); });
-    bindings.push(() => {
+    list.push(() => {
       btns.forEach(([k, b]) => b.classList.toggle('on', S.palette === k));
       inputs.forEach(inp => inp.value = S[inp.dataset.k]);
     });
@@ -470,41 +552,36 @@ const GROUPS = {
     { type: 'range', key: 'beatFlash', label: 'Vuruşta flaş', min: 0, max: 1, fmt: pct }
   ],
   g_fx: [
-    { type: 'seg', key: 'mirror', label: 'Ayna / Kaleydoskop <kbd>K</kbd>', options: MIRRORS },
-    { type: 'seg', key: 'eq', label: 'EQ katmanı, her sahnenin üstüne <kbd>Q</kbd>', options: EQ_LAYERS },
-    { type: 'range', key: 'eqSize', label: 'EQ boyutu', min: 0.4, max: 2, fmt: mul },
+    { type: 'head', label: 'Lens · sinema' },
     { type: 'range', key: 'bloom', label: 'Parlama (bloom)', min: 0, max: 3, fmt: mul },
     { type: 'range', key: 'lensStreak', label: 'Anamorfik flare <kbd>A</kbd>', min: 0, max: 2, fmt: mul },
     { type: 'seg', key: 'flareTint', label: 'Flare rengi', options: ['Sinema mavisi', 'Palet', 'Beyaz'] },
     { type: 'range', key: 'lensGhost', label: 'Lens hayaletleri + hale', min: 0, max: 2, fmt: mul },
     { type: 'range', key: 'lensDirt', label: 'Lens kiri (ışık vurunca)', min: 0, max: 2, fmt: mul },
+    { type: 'head', label: 'Görüntü dokusu' },
     { type: 'range', key: 'glitchAmt', label: 'Glitch miktarı', min: 0, max: 2, fmt: mul },
     { type: 'range', key: 'rgbAmt', label: 'RGB kayma', min: 0, max: 3, fmt: mul },
+    { type: 'range', key: 'grain', label: 'Film grain', min: 0, max: 2, fmt: mul },
+    { type: 'range', key: 'scan', label: 'Tarama çizgileri', min: 0, max: 1, fmt: pct },
+    { type: 'range', key: 'vignette', label: 'Kenar karartma', min: 0, max: 2, fmt: mul },
+    { type: 'head', label: 'Ayna · EQ katmanı' },
+    { type: 'seg', key: 'mirror', label: 'Ayna / Kaleydoskop <kbd>K</kbd>', options: MIRRORS },
+    { type: 'seg', key: 'eq', label: 'EQ katmanı, her sahnenin üstüne <kbd>Q</kbd>', options: EQ_LAYERS },
+    { type: 'range', key: 'eqSize', label: 'EQ boyutu', min: 0.4, max: 2, fmt: mul },
+    { type: 'head', label: 'İz · feedback' },
     { type: 'range', key: 'trails', label: 'İz efekti <kbd>E</kbd>', min: 0, max: 0.97, fmt: pct },
     { type: 'range', key: 'fb', label: 'Feedback tüneli <kbd>J</kbd>', min: 0, max: 0.97, fmt: pct },
     { type: 'range', key: 'fbZoom', label: 'Feedback zoom', min: 0.9, max: 1.12, step: 0.002, fmt: mul },
     { type: 'range', key: 'fbRot', label: 'Feedback dönüş', min: -0.06, max: 0.06, step: 0.001, fmt: v => (v * 57.3).toFixed(1) + '°' },
-    { type: 'range', key: 'fbHue', label: 'Feedback renk kayması', min: 0, max: 0.3, step: 0.005, fmt: v => (v * 57.3).toFixed(0) + '°' },
-    { type: 'range', key: 'grain', label: 'Film grain', min: 0, max: 2, fmt: mul },
-    { type: 'range', key: 'scan', label: 'Tarama çizgileri', min: 0, max: 1, fmt: pct },
-    { type: 'range', key: 'vignette', label: 'Kenar karartma', min: 0, max: 2, fmt: mul }
-  ],
-  g_scene: [
-    { type: 'seg', key: 'env', label: 'Krom yansıma ortamı (gerçek HDRI)', options: Object.values(ENVS).map(e => e[0]), values: Object.keys(ENVS) },
-    { type: 'seg', key: 'icedVariant', label: 'Iced Out · çekim', options: ['Yakın plan', 'Portre', 'Kolye'], values: [0, 1, 2] },
-    { type: 'range', key: 'photoMotion', label: 'Fotoğraf sahneleri · kamera hareketi', min: 0, max: 2, fmt: mul },
-    { type: 'toggle', key: 'photoCuts', label: 'Fotoğraf sahneleri · BPM kurgu kesmeleri' },
-    { type: 'seg', key: 'cutEvery', label: 'Kesme sıklığı (vuruş)', options: ['4', '8', '16', '32'], values: [4, 8, 16, 32] },
-    { type: 'seg', key: 'bustFin', label: 'Mermer Büst · yüzey', options: BUST_FIN },
-    { type: 'toggle', key: 'astro', label: 'Dünya Yörüngesi · astronot' },
-    { type: 'toggle', key: 'sting', label: 'Drop\'ta krom logo animasyonu (O ile elle)' }
+    { type: 'range', key: 'fbHue', label: 'Feedback renk kayması', min: 0, max: 0.3, step: 0.005, fmt: v => (v * 57.3).toFixed(0) + '°' }
   ],
   g_trans: [
     { type: 'seg', key: 'trans', label: 'Geçiş tipi <kbd>W</kbd>', options: TRANSITIONS },
-    { type: 'range', key: 'transDur', label: 'Geçiş süresi', min: 0.1, max: 4, fmt: v => v.toFixed(1) + ' sn' }
+    { type: 'range', key: 'transDur', label: 'Geçiş süresi', min: 0.1, max: 4, fmt: v => v.toFixed(1) + ' sn' },
+    { type: 'toggle', key: 'sting', label: 'Drop\'ta krom logo animasyonu (O ile elle)' }
   ],
   g_auto: [
-    { type: 'seg', key: 'auto', label: 'Otomatik geçiş <kbd>␣</kbd>', options: ['Kapalı', 'Zamanlı', 'Director'], values: ['off', 'timed', 'director'] },
+    { type: 'seg', key: 'auto', label: 'Döngü / otomatik geçiş <kbd>␣</kbd>', options: ['Kapalı', 'Sıralı', 'Karışık', 'Director'], values: ['off', 'seq', 'timed', 'director'] },
     { type: 'seg', key: 'autoEvery', label: 'Kaç vuruşta bir', options: ['8', '16', '32', '64', '128'], values: [8, 16, 32, 64, 128] }
   ],
   g_audio: [
@@ -532,6 +609,35 @@ const GROUPS = {
 };
 for (const [id, defs] of Object.entries(GROUPS)) defs.forEach(d => $(id).appendChild(ctl(d)));
 
+// ---------- one-click looks: colour, type, lens and effects (never tempo, audio, name or the loop) ----------
+const fontIdx = n => Math.max(0, FONTS.findIndex(f => f[0] === n));
+const CLEAN = { mirror: 0, eq: 0, trails: 0, fb: 0, hue: 0, tone: 1, exposure: 1 };
+const PACKS = [
+  ['29 Ekim', 'Bayrak · tören', ['p_bosphorus', 'flag'], { palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', font: fontIdx('Cinzel'), textStyle: 0, textGlow: 0.35, textShine: 0.8, textMode: 3,
+    lensStreak: 0.5, flareTint: 1, lensGhost: 0.25, lensDirt: 0.4, bloom: 1.1, glitchAmt: 0.4, rgbAmt: 0.4, grain: 0.5, scan: 0, vignette: 1, sat: 1.05, contrast: 1.05, punch: 0.35, shake: 0.15, beatFlash: 0, trans: 4, transDur: 1.5, sting: true }],
+  ['Club', 'Neon · karanlık', ['p_neon', 'neon'], { palette: 'gece', c1: '#6a2bff', c2: '#ff2bd6', font: fontIdx('Monoton'), textStyle: 1, textGlow: 0.6, textShine: 0.4, textMode: 1,
+    lensStreak: 0.9, flareTint: 1, lensGhost: 0.35, lensDirt: 0.6, bloom: 1.3, glitchAmt: 1, rgbAmt: 0.9, grain: 0.7, scan: 0.15, vignette: 1.1, sat: 1.15, contrast: 1.1, punch: 0.6, shake: 0.35, beatFlash: 0.25, trans: 0, transDur: 0.6, sting: true }],
+  ['Luxury', 'Altın · pırlanta', ['p_velvet', 'p_iced'], { palette: 'custom', c1: '#ffc850', c2: '#ffffff', font: fontIdx('Bodoni'), textStyle: 3, textGlow: 0.2, textShine: 1.2, textMode: 1,
+    lensStreak: 0.4, flareTint: 2, lensGhost: 0.2, lensDirt: 0.3, bloom: 0.9, glitchAmt: 0.15, rgbAmt: 0.15, grain: 0.35, scan: 0, vignette: 1.1, sat: 0.95, contrast: 1.08, punch: 0.15, shake: 0.05, beatFlash: 0, trans: 4, transDur: 2, sting: true }],
+  ['Festival', 'Lazer · büyük sahne', ['p_stage'], { palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', font: fontIdx('Unbounded'), textStyle: 2, textGlow: 0.3, textShine: 0.8, textMode: 1,
+    lensStreak: 1, flareTint: 0, lensGhost: 0.5, lensDirt: 0.7, bloom: 1.3, glitchAmt: 0.7, rgbAmt: 0.6, grain: 0.5, scan: 0, vignette: 1, sat: 1.1, contrast: 1.05, punch: 0.5, shake: 0.3, beatFlash: 0.3, trans: 3, transDur: 0.8, sting: true }],
+  ['Demir', 'Sinematik · monokrom', ['iron', 'ghost'], { palette: 'custom', c1: '#ff2a12', c2: '#dfe8ff', font: fontIdx('Michroma'), textStyle: 4, textGlow: 0.15, textShine: 0.6, textMode: 0,
+    lensStreak: 0.7, flareTint: 0, lensGhost: 0.3, lensDirt: 0.6, bloom: 1, glitchAmt: 0.2, rgbAmt: 0.25, grain: 0.9, scan: 0, vignette: 1.3, sat: 0.85, contrast: 1.15, punch: 0.2, shake: 0.1, beatFlash: 0, trans: 4, transDur: 2.5, sting: true }],
+  ['Minimal', 'Siyah-beyaz · sade', ['ghost', 'bust'], { palette: 'custom', c1: '#ffffff', c2: '#9aa4b2', font: fontIdx('Syne'), textStyle: 0, textGlow: 0.1, textShine: 0.5, textMode: 1,
+    lensStreak: 0.25, flareTint: 2, lensGhost: 0.1, lensDirt: 0.2, bloom: 0.7, glitchAmt: 0.1, rgbAmt: 0.1, grain: 0.8, scan: 0, vignette: 1.2, sat: 0.2, contrast: 1.1, punch: 0.15, shake: 0, beatFlash: 0, trans: 4, transDur: 2, sting: false }]
+];
+PACKS.forEach(([name, sub, hero, look]) => {
+  const b = document.createElement('button');
+  b.innerHTML = `${name}<small>${sub}</small>`;
+  b.onclick = () => {
+    Object.assign(S, CLEAN, look);
+    const h = hero.map(byKey).find(i => i >= 0);
+    if (h !== undefined) setScene(h);
+    save(); syncAll(); status(`Görünüm: ${name}`);
+  };
+  $('packs').appendChild(b);
+});
+
 // presets (F1–F6 loads)
 const PRESETS = 6;
 for (let i = 1; i <= PRESETS; i++) {
@@ -557,19 +663,27 @@ $('resetBtn').onclick = () => {
   save(); syncAll(); status('Ayarlar sıfırlandı.');
 };
 
+// every chrome scene gets its own HDRI (per-scene setting, default = the global one); maps are cached per key
 let envKey = 'studio';
 function applyEnv() {
-  if (S.env === envKey) return;
-  envKey = S.env;
-  ctx.envMap(envKey).then(e => { ctx.env = e; scenes.forEach(s => { if (!s.ownEnv && s.scene) s.scene.environment = e; }); }).catch(() => status('Ortam yüklenemedi.'));
+  if (S.env !== envKey) { envKey = S.env; ctx.envMap(envKey).then(e => { ctx.env = e; }).catch(() => {}); }
+  scenes.forEach(s => {
+    if (s.ownEnv || !s.scene) return;
+    const want = S.sc?.[s.key]?.env ?? S.env;
+    if (s.envKey === want) return;
+    s.envKey = want;
+    ctx.envMap(want).then(e => { if (s.envKey === want) s.scene.environment = e; }).catch(() => status('Ortam yüklenemedi.'));
+  });
 }
-function syncAll() { bindings.forEach(f => f()); applyEnv(); refreshUI(); }
+function syncAll() { bindings.forEach(f => f()); panelBindings.forEach(f => f()); applyEnv(); refreshUI(); }
 function refreshUI() {
   sceneBtns.forEach((b, i) => {
     b.classList.toggle('on', i === cur);
     b.classList.toggle('prev', i === prev);
     b.classList.toggle('out', S.off.includes(scenes[i].key));
   });
+  const inLoop = scenes.filter(s => !S.off.includes(s.key)).length;
+  $('loopInfo').textContent = `${inLoop} / ${scenes.length} sahne döngüde`;
   $('lockBtn').classList.toggle('on', S.lock);
   $('lockBtn').innerHTML = S.lock ? `🔒 Kilitli: ${scenes[cur].name}` : '🔓 Sahneyi kilitle <kbd>L</kbd>';
   $('lockBadge').style.display = S.lock ? 'block' : 'none';
@@ -679,7 +793,7 @@ addEventListener('keydown', e => {
   else if (fkey) document.querySelectorAll('#presets .load')[fkey - 1].click();
   else if (e.key === 'ArrowRight') setScene(cur + 1);
   else if (e.key === 'ArrowLeft') setScene(cur - 1);
-  else if (e.key === ' ') { const m = ['off', 'timed', 'director']; S.auto = m[(m.indexOf(S.auto) + 1) % m.length]; status('Otomatik: ' + { off: 'Kapalı', timed: 'Zamanlı', director: 'Director' }[S.auto]); }
+  else if (e.key === ' ') { const m = ['off', 'seq', 'timed', 'director']; S.auto = m[(m.indexOf(S.auto) + 1) % m.length]; status('Döngü: ' + { off: 'Kapalı', seq: 'Sıralı', timed: 'Karışık', director: 'Director' }[S.auto]); }
   else if (k === 'l') S.lock = !S.lock;
   else if (k === 'd') doDrop();
   else if (k === 'f') $('fsBtn').onclick();
@@ -723,4 +837,4 @@ syncAll();
 fillDevices();
 loading.classList.add('done');
 requestAnimationFrame(frame);
-window.__odv = { S, scenes, setScene, doDrop, sting, get cur() { return cur; }, get prev() { return prev; } };
+window.__odv = { S, scenes, setScene, doDrop, sting, fx, renderer, get cur() { return cur; }, get prev() { return prev; } };
