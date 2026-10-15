@@ -1,5 +1,6 @@
 #!/bin/bash
 # Keep trying the missing stills (free GPU quota resets over time), then build their depth maps.
+# Set HF_TOKEN (free Hugging Face token) to use your own GPU quota instead of the shared anonymous one.
 # Review every image afterwards: text must read exactly ONLYDEMIR; delete rejects (jpg + _depth.png) and rerun with another seed.
 cd "$(dirname "$0")/.."
 # depth: ONNX Runtime build of Depth Anything V2 Small if available (no torch / Hugging Face needed), else transformers
@@ -25,7 +26,7 @@ for round in $(seq 1 15); do
     [ -f "assets/photo/${k}_depth.png" ] && continue
     if [ ! -f "assets/photo/$k.jpg" ]; then
       pv="$(prompt_for $k)"; seed="${pv%%|*}"; prompt="${pv#*|}"
-      $PY tools/gen.py "assets/photo/$k.jpg" "$seed" "$prompt" schnell 1920 1088 >/dev/null 2>&1
+      echo "$k: $($PY tools/gen.py "assets/photo/$k.jpg" "$seed" "$prompt" schnell 1920 1088 2>&1 | tail -1)"
     fi
     if [ -f "assets/photo/$k.jpg" ]; then
       $DEPTH "assets/photo/$k.jpg" 2>/dev/null | grep '^ok'
