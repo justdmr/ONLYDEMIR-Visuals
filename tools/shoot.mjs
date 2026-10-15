@@ -21,14 +21,15 @@ const browser = await pw.chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 const errors = [];
-page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${m.type()}] ${m.text()}`); });
+// missing photo scenes are probed with HEAD requests; their 404s are expected
+page.on('console', m => { if ((m.type() === 'error' || m.type() === 'warning') && !/status of 404/.test(m.text())) errors.push(`[${m.type()}] ${m.text()}`); });
 page.on('pageerror', e => errors.push('[pageerror] ' + e.message));
-page.on('requestfailed', r => errors.push('[requestfailed] ' + r.url()));
+page.on('requestfailed', r => { if (r.method() !== 'HEAD') errors.push('[requestfailed] ' + r.url()); });
 page.on('response', r => { if (r.status() >= 400 && r.request().method() !== 'HEAD') errors.push(`[http ${r.status()}] ${r.url()}`); });
 
 await page.goto(url);
 await page.waitForFunction(() => window.__odv && document.getElementById('loading').classList.contains('done'), null, { timeout: 120000 });
-await page.evaluate(() => { document.getElementById('ui').classList.add('hidden'); const o = window.__odv.S; o.auto = 'off'; o.lock = true; });
+await page.evaluate(() => { document.getElementById('ui').classList.add('hidden'); document.body.classList.add('idle'); const o = window.__odv.S; o.auto = 'off'; o.lock = true; o.sting = false; });
 const list = await page.evaluate(() => window.__odv.scenes.map((s, i) => ({ i, key: s.key, name: s.name })));
 const want = !arg.scenes || arg.scenes === 'all' ? list : list.filter(s => arg.scenes.split(',').includes(s.key));
 const report = [];

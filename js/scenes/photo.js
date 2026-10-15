@@ -14,7 +14,12 @@ export const PHOTO_DEFS = [
   { key: 'p_space', name: 'Yörüngede', energy: 'low', variants: ['space'], depth: 2.2, flare: true, stars: true },
   { key: 'p_car', name: 'Garaj', energy: 'mid', variants: ['car'], depth: 2.8, sweep: true, glints: { rect: [0, 0.3, 1, 1], n: 50, thresh: 0.99 } },
   { key: 'p_bosphorus', name: 'Boğaz · 29 Ekim', cat: 'tr', energy: 'low', variants: ['bosphorus'], depth: 2.6, fireworks: true },
-  { key: 'p_velvet', name: 'Pırlanta Logo', energy: 'mid', variants: ['velvet'], depth: 1.6, sweep: true, glints: { rect: [0.05, 0.15, 0.95, 0.9], n: 230, thresh: 0.98 } }
+  { key: 'p_velvet', name: 'Pırlanta Logo', energy: 'mid', variants: ['velvet'], depth: 1.6, sweep: true, glints: { rect: [0.05, 0.15, 0.95, 0.9], n: 230, thresh: 0.98 } },
+  // monumental "DEMİR" concepts (prompts in tools/retry_gen.sh); each appears once its image + depth map exist
+  { key: 'p_monolith', name: 'Demir Anıt', energy: 'low', variants: ['monolith'], depth: 2.8, dust: true, flare: true },
+  { key: 'p_angel', name: 'Demir Melek', energy: 'mid', variants: ['angel'], depth: 2.6, dust: true, sweep: true },
+  { key: 'p_rooftop', name: 'Çatı Partisi', energy: 'high', variants: ['rooftop'], depth: 2.4, dust: true, strobe: true, glints: { rect: [0, 0, 1, 0.6], n: 40, thresh: 0.995 } },
+  { key: 'p_anitkabir', name: 'Anıtkabir · 29 Ekim', cat: 'tr', energy: 'low', variants: ['anitkabir'], depth: 2.2, fireworks: true }
 ];
 
 let starTex, streakTex, dotTex;

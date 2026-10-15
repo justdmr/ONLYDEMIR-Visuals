@@ -44,7 +44,7 @@ const DEFAULTS = {
   scene: 0, name: 'ONLYDEMIR', msgs: DEFAULT_MSGS, textMode: 0, msgEvery: 8, font: 0, textSize: 0.7, textPlace: 0, corner: false, textGlow: 0.25,
   auto: 'director', autoEvery: 32, lock: false, off: ['tunnel', 'fireworks', 'led', 'scope', 'rain', 'synth', 'lasers'], palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', bpm: 128,
   speed: 1, react: 1, beatSens: 1.3, bloom: 1, glitchAmt: 0.7, rgbAmt: 0.6, grain: 0.6, trails: 0, punch: 0.35, shake: 0.2, beatFlash: 0,
-  hue: 0, sat: 1, contrast: 1, vignette: 1, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, textStyle: 0, textShine: 0.6, sc: {}, lensStreak: 0.6, lensGhost: 0.35, lensDirt: 0.5, flareTint: 0, sting: true, master: 1, quality: 1,
+  hue: 0, sat: 1, contrast: 1, vignette: 1, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, textStyle: 0, textShine: 0.6, sc: {}, lensStreak: 0.6, lensGhost: 0.35, lensDirt: 0.5, flareTint: 0, sting: true, dropGlass: true, loopTrans: 'scene', master: 1, quality: 1,
   clock: 'lock', offsetMs: 0, strobeDiv: 4, fb: 0, fbZoom: 1.02, fbRot: 0.004, fbHue: 0, astro: true, bustFin: 0, env: 'studio', icedVariant: 0, photoMotion: 1, photoCuts: true, cutEvery: 8, tone: 1, exposure: 1
 };
 const CFG_KEYS = Object.keys(DEFAULTS);
@@ -91,6 +91,7 @@ audio.on('onset', () => clock.onset());
 ctx.U.uSpec.value.image.data = audio.spec;
 ctx.U.uWave.value.image.data = audio.wave;
 
+const GLASS = TRANSITIONS.indexOf('Cam kırılma');
 const CATS = { pro: 'Fotogerçekçi · 2.5D', ent: 'Sinematik 3D · Demir', name: 'İsim · Sahne', '3d': '3D · Logo', tr: '29 Ekim', eq: 'Ekolayzır', psy: 'Psikedelik' };
 // photoreal 2.5D scenes come first; skip any whose image/depth pair is missing
 const photoOk = await Promise.all(PHOTO_DEFS.map(d => fetch(`assets/photo/${d.variants[0]}_depth.png`, { method: 'HEAD' }).then(r => r.ok).catch(() => false)));
@@ -109,12 +110,25 @@ const DEFAULT_CAT = { logo: '3d', emblem: '3d', particles: '3d', flag: 'tr', 29:
 scenes.forEach(s => { s.cat = s.cat || DEFAULT_CAT[s.key] || 'psy'; });
 const byKey = k => scenes.findIndex(s => s.key === k);
 
-let cur = Math.min(S.scene, scenes.length - 1), prev = -1, mix = 1, transDur = 1;
+let cur = Math.min(S.scene, scenes.length - 1), prev = -1, mix = 1, transDur = 1, transType = S.trans;
 
-function setScene(i, dur = S.transDur) {
+// which transition leads into scene i: the scene's own choice (⚙), or random / cycling through all of them for the loop
+let cycleT = 0;
+function transFor(i) {
+  const o = S.sc?.[scenes[i].key] || {};
+  let type = o.trans >= 0 ? o.trans : S.trans;
+  if (S.loopTrans === 'random') type = Math.floor(Math.random() * TRANSITIONS.length);
+  else if (S.loopTrans === 'cycle') type = cycleT++ % TRANSITIONS.length;
+  let dur = o.tdur > 0 ? o.tdur : S.transDur;
+  if (type === GLASS) dur = Math.max(dur, 0.8);   // the shatter needs a moment to read
+  return { type, dur };
+}
+function setScene(i, dur, type) {
   i = (i + scenes.length) % scenes.length;
   if (i === cur) return;
-  prev = cur; cur = i; mix = 0; transDur = Math.max(0.05, dur);
+  const t = transFor(i);
+  dur = dur ?? t.dur; type = type ?? t.type;
+  prev = cur; cur = i; mix = 0; transDur = Math.max(0.05, dur); transType = type;
   S.scene = cur; save();
   refreshUI();
 }
@@ -152,7 +166,8 @@ function doDrop() {
   S.dropCount++;
   S.msgFlash = 1;
   if (S.sting) sting.fire(S);
-  if (!S.lock && S.auto !== 'off') setScene(S.auto === 'seq' ? nextInLoop() : pick(['high']), 0.3);
+  // drops cut hard, or shatter the screen like glass when that option is on
+  if (!S.lock && S.auto !== 'off') setScene(S.auto === 'seq' ? nextInLoop() : pick(['high']), S.dropGlass ? 0.9 : 0.3, S.dropGlass ? GLASS : undefined);
   flashUI('dropBtn');
 }
 
@@ -234,10 +249,10 @@ function frame(now) {
   cu.uTextSweep.value = ((S.clockPhase || T * 2) / 8 % 1) * 2.6 - 0.5;
   cu.uTextShine.value = S.textShine * (1 + S.drop);
   const spike = S.beat > 0.8 && Math.random() < 0.12 ? 0.35 : 0;
-  const glitch = S.glitchHold ? 1 : Math.max(S.drop * 0.7, spike, mix < 1 && S.trans === 0 ? (1 - Math.abs(mix * 2 - 1)) * 0.4 : 0) * S.glitchAmt;
+  const glitch = S.glitchHold ? 1 : Math.max(S.drop * 0.7, spike, mix < 1 && transType === 0 ? (1 - Math.abs(mix * 2 - 1)) * 0.4 : 0) * S.glitchAmt;
   cu.uTextGlitch.value = Math.min(1, Math.max(S.msgFlash, glitch));
   cu.uMix.value = mix;
-  cu.uTrans.value = S.trans;
+  cu.uTrans.value = transType;
   cu.uTime.value = T;
   cu.uMirror.value = S.mirror;
   cu.uPunch.value = (S.beat * 0.05 + S.drop * 0.12) * S.punch;
@@ -396,6 +411,15 @@ function sceneOptions(s) {
     reset: () => { const c = { ...(S.sc?.[k] || {}) }; delete c[d.name]; S.sc = { ...S.sc, [k]: c }; }
   });
   const x = v => v.toFixed(2) + '×';
+  const into = [
+    o({ type: 'seg', name: 'trans', label: 'Bu sahneye geçiş', options: ['Genel', ...TRANSITIONS], values: [-1, ...TRANSITIONS.map((_, i) => i)] }, () => -1),
+    o({ type: 'range', name: 'tdur', label: 'Geçiş süresi', min: 0, max: 4, step: 0.1, fmt: v => v > 0 ? v.toFixed(1) + ' sn' : 'genel' }, () => 0)
+  ];
+  const own = sceneOwn(s, o, x);
+  return [...own, ...(own.length ? [{ type: 'head', label: 'Geçiş' }] : []), ...into];
+}
+function sceneOwn(s, o, x) {
+  const k = s.key;
   const motion = def => o({ type: 'range', name: 'motion', label: 'Kamera hareketi', min: 0, max: 2, fmt: x }, def);
   const photo = [
     motion(() => S.photoMotion ?? 1),
@@ -578,11 +602,13 @@ const GROUPS = {
   g_trans: [
     { type: 'seg', key: 'trans', label: 'Geçiş tipi <kbd>W</kbd>', options: TRANSITIONS },
     { type: 'range', key: 'transDur', label: 'Geçiş süresi', min: 0.1, max: 4, fmt: v => v.toFixed(1) + ' sn' },
+    { type: 'toggle', key: 'dropGlass', label: 'Drop\'ta cam kırılma geçişi' },
     { type: 'toggle', key: 'sting', label: 'Drop\'ta krom logo animasyonu (O ile elle)' }
   ],
   g_auto: [
     { type: 'seg', key: 'auto', label: 'Döngü / otomatik geçiş <kbd>␣</kbd>', options: ['Kapalı', 'Sıralı', 'Karışık', 'Director'], values: ['off', 'seq', 'timed', 'director'] },
-    { type: 'seg', key: 'autoEvery', label: 'Kaç vuruşta bir', options: ['8', '16', '32', '64', '128'], values: [8, 16, 32, 64, 128] }
+    { type: 'seg', key: 'autoEvery', label: 'Kaç vuruşta bir', options: ['8', '16', '32', '64', '128'], values: [8, 16, 32, 64, 128] },
+    { type: 'seg', key: 'loopTrans', label: 'Sahneler arası geçiş', options: ['Sahneye göre', 'Rastgele', 'Sırayla hepsi'], values: ['scene', 'random', 'cycle'] }
   ],
   g_audio: [
     { type: 'range', key: 'beatSens', label: 'Vuruş eşiği (düşük = daha hassas)', min: 1.05, max: 1.8, fmt: mul }
@@ -837,4 +863,4 @@ syncAll();
 fillDevices();
 loading.classList.add('done');
 requestAnimationFrame(frame);
-window.__odv = { S, scenes, setScene, doDrop, sting, fx, renderer, get cur() { return cur; }, get prev() { return prev; } };
+window.__odv = { S, scenes, setScene, doDrop, sting, fx, renderer, setMix: v => { mix = v; }, ctxPersp: ctx.chromePersp, transType: () => transType, get cur() { return cur; }, get prev() { return prev; } };

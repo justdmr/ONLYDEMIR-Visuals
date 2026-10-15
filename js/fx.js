@@ -9,7 +9,7 @@ import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 const VERT = 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }';
 const HASH = 'float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }';
 
-export const TRANSITIONS = ['Glitch', 'Flaş', 'Zoom', 'Silme', 'Karışım', 'RGB'];
+export const TRANSITIONS = ['Glitch', 'Flaş', 'Zoom', 'Silme', 'Karışım', 'RGB', 'Cam kırılma'];
 export const MIRRORS = ['Yok', 'Yatay', 'Dikey', '4\'lü', 'Kaleydo 6', 'Kaleydo 12'];
 export const EQ_LAYERS = ['Kapalı', 'Alt bar', 'Daire', 'Dalga', 'Kenarlar', 'Üst+Alt'];
 
@@ -31,6 +31,48 @@ uniform vec3 uC1, uC2;
 varying vec2 vUv;
 ${HASH}
 vec3 lin(vec3 c){ return pow(c,vec3(2.2)); }
+vec2 hash2(vec2 p){ return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453); }
+// Voronoi with exact border distance (IQ): xy = cell site (grid units), z = distance to the nearest border
+vec3 voro(vec2 x){
+  vec2 n=floor(x), f=fract(x), mg=vec2(0.0), mr=vec2(0.0); float md=8.0;
+  for(int j=-1;j<=1;j++) for(int i=-1;i<=1;i++){ vec2 g=vec2(float(i),float(j)); vec2 r=g+hash2(n+g)-f; float d=dot(r,r); if(d<md){ md=d; mr=r; mg=g; } }
+  md=8.0;
+  for(int j=-2;j<=2;j++) for(int i=-2;i<=2;i++){ vec2 g=mg+vec2(float(i),float(j)); vec2 r=g+hash2(n+g)-f; if(dot(mr-r,mr-r)>1e-5) md=min(md,dot(0.5*(mr+r),normalize(r-mr))); }
+  return vec3(n+mg+hash2(n+mg),md);
+}
+// glass shatter: the old frame cracks from the impact point, then its shards tumble toward the lens and fall away
+// radial magnification of the crack domain: small shards around the impact point, big ones at the edges
+float wk(float r){ return 1.0+2.2*exp(-r*3.2); }
+vec2 warp(vec2 p){ return p*wk(length(p)); }
+vec2 unwarp(vec2 w){ float r=length(w); float x=r; for(int i=0;i<4;i++) x=r/wk(x); return w*(x/max(r,1e-5)); }
+vec3 shatter(vec3 cNew,vec2 uv,float m){
+  const float D=5.0;
+  vec2 q=(vUv-0.5)*vec2(uAspect,1.0);
+  vec2 p=q; vec3 v=voro(warp(p)*D); vec2 cp; float e=0.0, tt=0.0, rot=0.0, sc=1.0; vec2 off=vec2(0.0);
+  for(int k=0;k<3;k++){
+    cp=unwarp(v.xy/D);
+    float r=hash(v.xy);
+    tt=clamp((m-0.14-length(cp)*0.35-r*0.12)/0.6,0.0,1.0);
+    e=tt*tt;
+    vec2 dir=normalize(cp+vec2(1e-4));
+    off=dir*e*0.55+vec2(0.0,-e*e*0.9);
+    rot=(r-0.5)*e*2.4; sc=1.0+e*1.8;
+    vec2 lq=(q-cp-off)/sc; float cr=cos(-rot), sr=sin(-rot);
+    p=cp+mat2(cr,-sr,sr,cr)*lq;
+    v=voro(warp(p)*D);
+  }
+  vec2 suv=(p/vec2(uAspect,1.0)+0.5)/(1.0+uPunch)+0.5*uPunch/(1.0+uPunch)+uShake;
+  float alive=(1.0-smoothstep(0.7,1.0,tt))*step(abs(suv.x-0.5),0.5)*step(abs(suv.y-0.5),0.5);
+  float edge=1.0-smoothstep(0.0,0.007,v.z), near=1.0-smoothstep(0.0,0.03,v.z);
+  // glass refracts a little along the break lines
+  vec3 oldc=texture2D(tB,suv+normalize(q+1e-4)*near*0.004).rgb*(1.0+e*0.5);
+  vec3 c=mix(cNew,oldc,alive);
+  float reach=smoothstep(0.0,0.16,m)*1.3;
+  c+=vec3(0.9,0.95,1.0)*edge*step(length(cp),reach)*(1.0-smoothstep(0.0,0.3,tt))*0.9;   // the cracks race out first
+  c+=vec3(0.85,0.93,1.0)*edge*alive*e*1.4;                                               // lit glass rims on flying shards
+  c+=vec3(1.0)*exp(-length(q)*14.0)*exp(-pow((m-0.1)*16.0,2.0))*2.0;                     // impact flash
+  return c;
+}
 vec2 kaleido(vec2 uv,float n){
   vec2 p=uv-0.5; p.x*=uAspect;
   float a=atan(p.y,p.x), r=length(p), s=6.2831853/n;
@@ -114,9 +156,11 @@ void main(){
       c+=lin(uC1)*3.0*exp(-abs(e)*60.0)+vec3(1.0)*exp(-abs(e)*400.0);
     } else if(uTrans<4.5){
       c=mix(texture2D(tB,uv).rgb,c,smoothstep(0.0,1.0,m));
-    } else {
+    } else if(uTrans<5.5){
       vec3 a=c, b=texture2D(tB,uv).rgb;
       c=vec3(mix(b.r,a.r,smoothstep(0.0,0.6,m)),mix(b.g,a.g,smoothstep(0.2,0.8,m)),mix(b.b,a.b,smoothstep(0.4,1.0,m)));
+    } else {
+      c=shatter(c,uv,m);
     }
   }
   if(uEQ>0.5) c=eq(c);

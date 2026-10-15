@@ -1,5 +1,6 @@
 #!/bin/bash
 # Keep trying the missing stills (free GPU quota resets over time), then build their depth maps.
+# Review every image afterwards: text must read exactly ONLYDEMIR; delete rejects (jpg + _depth.png) and rerun with another seed.
 cd "$(dirname "$0")/.."
 # depth: ONNX Runtime build of Depth Anything V2 Small if available (no torch / Hugging Face needed), else transformers
 if tools/.venv/bin/python -c "import onnxruntime" 2>/dev/null; then DEPTH="tools/.venv/bin/python tools/depth_onnx.py"
@@ -11,12 +12,16 @@ prompt_for() {
     space) echo "3|photorealistic photograph, an astronaut in a white spacesuit seen from behind floating in orbit, looking at the planet Earth, a thin blue atmosphere glowing on the horizon, sunrise flare over the curve of the earth, city lights on the night side, stars, NASA style, ultra detailed, 8k" ;;
     car) echo "21|photorealistic automotive photograph of a sleek black supercar parked in a dark underground garage with red neon light strips on the ceiling, glossy wet floor reflections, the front license plate reads ONLYDEMIR, dramatic low angle, cinematic lighting, 8k" ;;
     bosphorus) echo "29|photorealistic night photograph of a huge red Turkish flag with white crescent and star waving in the wind in the foreground, the illuminated Bosphorus bridge in Istanbul behind it, colorful fireworks exploding over the water, mosque minarets on the skyline, long exposure reflections on the sea, cinematic, 8k" ;;
+    monolith) echo "41|cinematic hyperreal CGI render, a colossal dark forged iron human head half submerged in still black water, glowing molten red cracks running across its face, a single shaft of white light from above, thick volumetric fog, a tiny human silhouette on the shore for scale, unreal engine 5, 8k" ;;
+    angel) echo "43|hyperreal cinematic render of a giant white porcelain and polished chrome female android with large mechanical wings kneeling in a vast dark brutalist concrete hall, beams of white light cutting through haze, thin red light strips on the floor, unreal engine 5, octane render, 8k" ;;
+    rooftop) echo "47|photorealistic night photograph of an exclusive rooftop party above a glittering city skyline, crowd silhouettes with raised hands, a DJ booth with a glowing white LED sign that reads ONLYDEMIR, red and white laser beams in light haze, shot on 24mm, cinematic, 8k" ;;
+    anitkabir) echo "53|photorealistic night photograph of Anitkabir mausoleum in Ankara illuminated with warm golden light, huge red Turkish flags with white crescent and star waving, fireworks in the dark blue sky, long exposure, cinematic, 8k" ;;
     velvet) echo "31|luxury macro product photograph, the word ONLYDEMIR as a three-dimensional jewelry logo made of polished white gold completely paved with brilliant cut diamonds, lying on black crushed velvet, dramatic studio lighting, sparkling diamond caustics, shallow depth of field, 8k, photorealistic" ;;
   esac
 }
 for round in $(seq 1 15); do
   left=0
-  for k in neon space car bosphorus velvet; do
+  for k in neon space car bosphorus velvet monolith angel rooftop anitkabir; do
     [ -f "assets/photo/${k}_depth.png" ] && continue
     if [ ! -f "assets/photo/$k.jpg" ]; then
       pv="$(prompt_for $k)"; seed="${pv%%|*}"; prompt="${pv#*|}"

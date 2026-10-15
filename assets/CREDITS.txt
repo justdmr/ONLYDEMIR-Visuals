@@ -16,7 +16,10 @@ Photoreal stills (assets/photo/*.jpg)
   not photographs of real persons.
 
 Depth maps (assets/photo/*_depth.png)
-  Depth Anything V2 Small (Apache-2.0), run locally with tools/depth_local.py
+  Depth Anything V2 Small (Apache-2.0), run locally with tools/depth_local.py or tools/depth_onnx.py
+  (ONNX export of the same Small weights by fabio-sim/Depth-Anything-ONNX, Apache-2.0)
 
-Fonts — Anton and Exo 2 (SIL Open Font License), via Fontsource
+Fonts (SIL Open Font License 1.1), via Fontsource
+  Anton, Exo 2, Unbounded, Monoton, Bungee Shade, Tilt Neon, Rubik Glitch, Cinzel, Syne,
+  Big Shoulders Display, Bodoni Moda, Michroma
 three.js r160 (MIT)

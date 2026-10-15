@@ -170,6 +170,9 @@ export async function createContext(renderer) {
     edge: new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.15, emissive: 0xe30a17, emissiveIntensity: 0.3, envMapIntensity: 1.5 }),
     clean: new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.06, envMapIntensity: 1.5 })
   };
+  // exaggerated reflection perspective: flat chrome faces sweep through the HDRI instead of mirroring one flat patch
+  ctx.chromePersp = { value: 2.5 };
+  Object.values(ctx.mats).forEach(m => chromify(m, ctx.chromePersp));
   const spec = new THREE.DataTexture(new Uint8Array(64), 64, 1, THREE.RedFormat, THREE.UnsignedByteType);
   spec.minFilter = spec.magFilter = THREE.LinearFilter;
   const wave = new THREE.DataTexture(new Uint8Array(256).fill(128), 256, 1, THREE.RedFormat, THREE.UnsignedByteType);
@@ -200,6 +203,16 @@ export async function createContext(renderer) {
     ctx.mats.edge.emissiveIntensity = 0.2 + S.beat * 1.1 + S.bass * 0.2 + S.drop * 1.5;
   };
   return ctx;
+}
+
+export function chromify(m, persp) {
+  m.onBeforeCompile = sh => {
+    sh.uniforms.uPersp = persp;
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uPersp;')
+      .replace('#include <lights_fragment_begin>', '#include <lights_fragment_begin>\ngeometryViewDir=normalize(vec3(vViewPosition.xy*uPersp,vViewPosition.z));');
+  };
+  m.customProgramCacheKey = () => 'chromePersp';
+  return m;
 }
 
 // ---------- geometry ----------
