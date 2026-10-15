@@ -503,13 +503,15 @@ export class TextLayer {
     g.lineJoin = 'round';
     for (const l of lines) {
       let size = H * l.s;
-      const setFont = s => { g.font = font.replace('{s}', s); if ('letterSpacing' in g) g.letterSpacing = `${s * tracking}px`; };
+      const lf = l.f || font, tr = l.f ? 0.25 : tracking;   // captions bring their own font and wide tracking
+      const setFont = s => { g.font = lf.replace('{s}', s); if ('letterSpacing' in g) g.letterSpacing = `${s * tr}px`; };
       setFont(size);
       const tw = g.measureText(l.t).width;
       if (tw > W * l.w) { size *= W * l.w / tw; setFont(size); }
       const x = W * l.x, y = H * l.y, col = l.c || '#fff';
       g.save();
-      (TEXT_DRAW[style] || TEXT_DRAW[0])(g, l.t, x, y, size, col, glow, glowAmt);
+      if (l.plain) { g.fillStyle = col; g.fillText(l.t, x, y); }
+      else (TEXT_DRAW[style] || TEXT_DRAW[0])(g, l.t, x, y, size, col, glow, glowAmt);
       g.restore();
     }
     this.tex.needsUpdate = true;

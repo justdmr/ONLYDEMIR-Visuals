@@ -15,6 +15,7 @@ import { CityScene, BustScene, TVWallScene, BUST_FIN } from './scenes/real.js';
 import { PhotoScene, PHOTO_DEFS } from './scenes/photo.js';
 import { Sting } from './sting.js';
 import { IronScene, ParticleEntityScene } from './scenes/entity.js';
+import { VideoScene, StoryScene, CLIPS } from './scenes/video.js';
 
 // ---------- settings ----------
 const store = {
@@ -42,18 +43,29 @@ const FONTS = [
 ];
 const DEFAULTS = {
   scene: 0, name: 'ONLYDEMIR', msgs: DEFAULT_MSGS, textMode: 0, msgEvery: 8, font: 0, textSize: 0.7, textPlace: 0, corner: false, textGlow: 0.25,
-  auto: 'director', autoEvery: 32, lock: false, off: ['tunnel', 'fireworks', 'led', 'scope', 'rain', 'synth', 'lasers'], palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', bpm: 128,
-  speed: 1, react: 1, beatSens: 1.3, bloom: 1, glitchAmt: 0.7, rgbAmt: 0.6, grain: 0.6, trails: 0, punch: 0.35, shake: 0.2, beatFlash: 0,
-  hue: 0, sat: 1, contrast: 1, vignette: 1, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, textStyle: 0, textShine: 0.6, sc: {}, lensStreak: 0.6, lensGhost: 0.35, lensDirt: 0.5, flareTint: 0, sting: true, dropGlass: true, loopTrans: 'scene', master: 1, quality: 1,
+  auto: 'seq', autoEvery: 32, lock: false, off: ['tunnel', 'fireworks', 'led', 'scope', 'rain', 'synth', 'lasers'], palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', bpm: 128,
+  speed: 1, react: 1, beatSens: 1.3, bloom: 0.7, glitchAmt: 0.15, rgbAmt: 0.1, grain: 0.15, trails: 0, punch: 0.1, shake: 0, beatFlash: 0, dropFlash: 0.15,
+  hue: 0, sat: 1, contrast: 1.05, vignette: 0.7, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, textStyle: 0, textShine: 0.6, sc: {}, lensStreak: 0.25, lensGhost: 0, lensDirt: 0, flareTint: 0, sting: true, dropGlass: false, loopTrans: 'scene', master: 1, quality: 1,
   clock: 'lock', offsetMs: 0, strobeDiv: 4, fb: 0, fbZoom: 1.02, fbRot: 0.004, fbHue: 0, astro: true, bustFin: 0, env: 'studio', icedVariant: 0, photoMotion: 1, photoCuts: true, cutEvery: 8, tone: 1, exposure: 1
 };
 const CFG_KEYS = Object.keys(DEFAULTS);
 // one-time move of older saved settings to the new pro defaults (keeps name, messages and colours)
-const CFG_VERSION = 3;
-if (store.get('cfgVersion', 1) < CFG_VERSION) {
+const CFG_VERSION = 4;
+const fromVersion = store.get('cfgVersion', 1);
+if (fromVersion < 3) {
   const old = store.get('cfg', {});
   const keep = ['name', 'msgs', 'palette', 'c1', 'c2', 'bpm', 'clock', 'offsetMs', 'quality', 'master'];
   store.set('cfg', Object.fromEntries(keep.filter(k => k in old).map(k => [k, old[k]])));
+}
+// v4 (clean cinema look): only the look values that made the image hazy/noisy go back to the new defaults;
+// tempo, MIDI clock, name, messages, colours and per-scene settings stay as they were. The loop is set to the
+// real-footage scenes once the scene list exists (below).
+const LOOK_RESET = ['bloom', 'glitchAmt', 'rgbAmt', 'grain', 'punch', 'shake', 'beatFlash', 'vignette', 'contrast', 'scan', 'trails', 'fb', 'mirror', 'eq',
+  'lensStreak', 'lensGhost', 'lensDirt', 'dropGlass', 'auto'];
+if (fromVersion < 4) {
+  const old = store.get('cfg', {});
+  LOOK_RESET.forEach(k => delete old[k]);
+  store.set('cfg', old);
   store.set('cfgVersion', CFG_VERSION);
 }
 const S = {
@@ -92,7 +104,7 @@ ctx.U.uSpec.value.image.data = audio.spec;
 ctx.U.uWave.value.image.data = audio.wave;
 
 const GLASS = TRANSITIONS.indexOf('Cam kırılma');
-const CATS = { pro: 'Fotogerçekçi · 2.5D', ent: 'Sinematik 3D · Demir', name: 'İsim · Sahne', '3d': '3D · Logo', tr: '29 Ekim', eq: 'Ekolayzır', psy: 'Psikedelik' };
+const CATS = { space: 'Uzay · Gerçek NASA görüntüsü', pro: 'Fotogerçekçi · 2.5D', ent: 'Sinematik 3D · Demir', name: 'İsim · Sahne', '3d': '3D · Logo', tr: '29 Ekim', eq: 'Ekolayzır', psy: 'Psikedelik' };
 // photoreal 2.5D scenes come first; skip any whose image/depth pair is missing
 const photoOk = await Promise.all(PHOTO_DEFS.map(d => fetch(`assets/photo/${d.variants[0]}_depth.png`, { method: 'HEAD' }).then(r => r.ok).catch(() => false)));
 const scenes = [
@@ -104,8 +116,10 @@ const scenes = [
   new CityScene(ctx), new BustScene(ctx), new TVWallScene(ctx),
   new EarthScene(ctx), new BlackHoleScene(ctx), new NeonScene(ctx), new VinylScene(ctx), new BalloonScene(ctx), new HologramScene(ctx),
   // appended last so existing keyboard / MIDI pad numbers keep pointing at the same scenes
-  new IronScene(ctx), new ParticleEntityScene(ctx)
+  new IronScene(ctx), new ParticleEntityScene(ctx),
+  new StoryScene(ctx), ...Object.keys(CLIPS).map(k => new VideoScene(ctx, k))
 ];
+if (fromVersion < 4) { S.off = scenes.filter(s => s.cat !== 'space').map(s => s.key); S.scene = Math.max(0, scenes.findIndex(s => s.key === 'v_story')); save(); }
 const DEFAULT_CAT = { logo: '3d', emblem: '3d', particles: '3d', flag: 'tr', 29: 'tr', spectrum: 'eq', tunnel: 'tr', ata: 'tr', fireworks: 'tr' };
 scenes.forEach(s => { s.cat = s.cat || DEFAULT_CAT[s.key] || 'psy'; });
 const byKey = k => scenes.findIndex(s => s.key === k);
@@ -283,7 +297,7 @@ function frame(now) {
   fu.uHue.value = S.hue * Math.PI / 180; fu.uSat.value = S.sat; fu.uContrast.value = S.contrast;
   fu.uVignette.value = S.vignette; fu.uScan.value = S.scan;
   fu.uTone.value = S.tone; fu.uExposure.value = S.exposure;
-  fu.uStrobe.value = Math.max(S.strobe && (S.clockPhase * S.strobeDiv) % 1 < 0.5 ? 1 : 0, Math.pow(S.drop, 6) * 0.9, Math.pow(Math.min(1, S.beat), 4) * S.beatFlash * 0.7);
+  fu.uStrobe.value = Math.max(S.strobe && (S.clockPhase * S.strobeDiv) % 1 < 0.5 ? 1 : 0, Math.pow(S.drop, 6) * S.dropFlash, Math.pow(Math.min(1, S.beat), 4) * S.beatFlash * 0.7);
 
   fx.render(A, B, dt, sting.active ? sting : null);
   updateMeters();
@@ -425,6 +439,16 @@ function sceneOwn(s, o, x) {
     motion(() => S.photoMotion ?? 1),
     o({ type: 'toggle', name: 'cuts', label: 'BPM kurgu kesmeleri' }, () => S.photoCuts !== false),
     o({ type: 'seg', name: 'every', label: 'Kesme sıklığı (vuruş)', options: ['4', '8', '16', '32'], values: [4, 8, 16, 32] }, () => S.cutEvery || 8)
+  ];
+  if (k === 'v_story') return [
+    o({ type: 'seg', name: 'bars', label: 'Bölüm süresi (bar)', options: ['4', '8', '16'], values: [4, 8, 16] }, () => 8),
+    o({ type: 'toggle', name: 'captions', label: 'Bölüm başlıkları' }, () => true),
+    motion(() => 1)
+  ];
+  if (k.startsWith('v_')) return [
+    motion(() => 1),
+    o({ type: 'range', name: 'expo', label: 'Parlaklık', min: 0.5, max: 1.6, fmt: x }, () => 1),
+    o({ type: 'seg', name: 'speed', label: 'Oynatma hızı', options: ['0.5×', '0.75×', '1×', '1.25×'], values: [0.5, 0.75, 1, 1.25] }, () => 1)
   ];
   if (k === 'p_iced') return [o({ type: 'seg', name: 'variant', label: 'Çekim', options: ['Yakın plan', 'Portre', 'Kolye'], values: [0, 1, 2] }, () => S.icedVariant || 0), ...photo];
   if (k.startsWith('p_')) return photo;
@@ -640,17 +664,17 @@ const fontIdx = n => Math.max(0, FONTS.findIndex(f => f[0] === n));
 const CLEAN = { mirror: 0, eq: 0, trails: 0, fb: 0, hue: 0, tone: 1, exposure: 1 };
 const PACKS = [
   ['29 Ekim', 'Bayrak · tören', ['p_bosphorus', 'flag'], { palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', font: fontIdx('Cinzel'), textStyle: 0, textGlow: 0.35, textShine: 0.8, textMode: 3,
-    lensStreak: 0.5, flareTint: 1, lensGhost: 0.25, lensDirt: 0.4, bloom: 1.1, glitchAmt: 0.4, rgbAmt: 0.4, grain: 0.5, scan: 0, vignette: 1, sat: 1.05, contrast: 1.05, punch: 0.35, shake: 0.15, beatFlash: 0, trans: 4, transDur: 1.5, sting: true }],
+    lensStreak: 0.5, flareTint: 1, lensGhost: 0.07, lensDirt: 0.12, bloom: 1.1, glitchAmt: 0.4, rgbAmt: 0.4, grain: 0.20, scan: 0, vignette: 1, sat: 1.05, contrast: 1.05, punch: 0.35, shake: 0.15, beatFlash: 0, trans: 4, transDur: 1.5, sting: true }],
   ['Club', 'Neon · karanlık', ['p_neon', 'neon'], { palette: 'gece', c1: '#6a2bff', c2: '#ff2bd6', font: fontIdx('Monoton'), textStyle: 1, textGlow: 0.6, textShine: 0.4, textMode: 1,
-    lensStreak: 0.9, flareTint: 1, lensGhost: 0.35, lensDirt: 0.6, bloom: 1.3, glitchAmt: 1, rgbAmt: 0.9, grain: 0.7, scan: 0.15, vignette: 1.1, sat: 1.15, contrast: 1.1, punch: 0.6, shake: 0.35, beatFlash: 0.25, trans: 0, transDur: 0.6, sting: true }],
+    lensStreak: 0.9, flareTint: 1, lensGhost: 0.10, lensDirt: 0.18, bloom: 1.3, glitchAmt: 1, rgbAmt: 0.9, grain: 0.28, scan: 0.15, vignette: 1.1, sat: 1.15, contrast: 1.1, punch: 0.6, shake: 0.35, beatFlash: 0.25, trans: 0, transDur: 0.6, sting: true }],
   ['Luxury', 'Altın · pırlanta', ['p_velvet', 'p_iced'], { palette: 'custom', c1: '#ffc850', c2: '#ffffff', font: fontIdx('Bodoni'), textStyle: 3, textGlow: 0.2, textShine: 1.2, textMode: 1,
-    lensStreak: 0.4, flareTint: 2, lensGhost: 0.2, lensDirt: 0.3, bloom: 0.9, glitchAmt: 0.15, rgbAmt: 0.15, grain: 0.35, scan: 0, vignette: 1.1, sat: 0.95, contrast: 1.08, punch: 0.15, shake: 0.05, beatFlash: 0, trans: 4, transDur: 2, sting: true }],
+    lensStreak: 0.4, flareTint: 2, lensGhost: 0.06, lensDirt: 0.09, bloom: 0.9, glitchAmt: 0.15, rgbAmt: 0.15, grain: 0.14, scan: 0, vignette: 1.1, sat: 0.95, contrast: 1.08, punch: 0.15, shake: 0.05, beatFlash: 0, trans: 4, transDur: 2, sting: true }],
   ['Festival', 'Lazer · büyük sahne', ['p_stage'], { palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', font: fontIdx('Unbounded'), textStyle: 2, textGlow: 0.3, textShine: 0.8, textMode: 1,
-    lensStreak: 1, flareTint: 0, lensGhost: 0.5, lensDirt: 0.7, bloom: 1.3, glitchAmt: 0.7, rgbAmt: 0.6, grain: 0.5, scan: 0, vignette: 1, sat: 1.1, contrast: 1.05, punch: 0.5, shake: 0.3, beatFlash: 0.3, trans: 3, transDur: 0.8, sting: true }],
+    lensStreak: 1, flareTint: 0, lensGhost: 0.10, lensDirt: 0.20, bloom: 1.3, glitchAmt: 0.7, rgbAmt: 0.6, grain: 0.20, scan: 0, vignette: 1, sat: 1.1, contrast: 1.05, punch: 0.5, shake: 0.3, beatFlash: 0.3, trans: 3, transDur: 0.8, sting: true }],
   ['Demir', 'Sinematik · monokrom', ['iron', 'ghost'], { palette: 'custom', c1: '#ff2a12', c2: '#dfe8ff', font: fontIdx('Michroma'), textStyle: 4, textGlow: 0.15, textShine: 0.6, textMode: 0,
-    lensStreak: 0.7, flareTint: 0, lensGhost: 0.3, lensDirt: 0.6, bloom: 1, glitchAmt: 0.2, rgbAmt: 0.25, grain: 0.9, scan: 0, vignette: 1.3, sat: 0.85, contrast: 1.15, punch: 0.2, shake: 0.1, beatFlash: 0, trans: 4, transDur: 2.5, sting: true }],
+    lensStreak: 0.7, flareTint: 0, lensGhost: 0.09, lensDirt: 0.18, bloom: 1, glitchAmt: 0.2, rgbAmt: 0.25, grain: 0.30, scan: 0, vignette: 1.3, sat: 0.85, contrast: 1.15, punch: 0.2, shake: 0.1, beatFlash: 0, trans: 4, transDur: 2.5, sting: true }],
   ['Minimal', 'Siyah-beyaz · sade', ['ghost', 'bust'], { palette: 'custom', c1: '#ffffff', c2: '#9aa4b2', font: fontIdx('Syne'), textStyle: 0, textGlow: 0.1, textShine: 0.5, textMode: 1,
-    lensStreak: 0.25, flareTint: 2, lensGhost: 0.1, lensDirt: 0.2, bloom: 0.7, glitchAmt: 0.1, rgbAmt: 0.1, grain: 0.8, scan: 0, vignette: 1.2, sat: 0.2, contrast: 1.1, punch: 0.15, shake: 0, beatFlash: 0, trans: 4, transDur: 2, sting: false }]
+    lensStreak: 0.25, flareTint: 2, lensGhost: 0.03, lensDirt: 0.06, bloom: 0.7, glitchAmt: 0.1, rgbAmt: 0.1, grain: 0.30, scan: 0, vignette: 1.2, sat: 0.2, contrast: 1.1, punch: 0.15, shake: 0, beatFlash: 0, trans: 4, transDur: 2, sting: false }]
 ];
 PACKS.forEach(([name, sub, hero, look]) => {
   const b = document.createElement('button');
