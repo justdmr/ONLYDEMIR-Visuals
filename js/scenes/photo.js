@@ -325,6 +325,8 @@ void main(){ float a=texture2D(uTex,gl_PointCoord).a; gl_FragColor=vec4(vec3(1.0
       const k = 1 + Math.min(1, S.beat) * 0.5 + S.drop;
       this.flareGlow.scale.setScalar(3 * k);
       this.flareStreak.scale.set(22 * k, 1.2, 1);
+      // the global lens pass draws real anamorphic streaks from the glow; the sprite streak is only a fallback
+      this.flareStreak.visible = !(S.lensStreak > 0.05);
       this.flareStreak.material.color.copy(this.ctx.c1).lerp(new THREE.Color(0.75, 0.85, 1), 0.6);
     }
     if (this.rain) {

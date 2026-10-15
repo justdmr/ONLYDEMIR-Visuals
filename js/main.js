@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createContext, PALETTES, ENVS } from './common.js';
-import { Compositor, TextLayer, TRANSITIONS, MIRRORS, EQ_LAYERS } from './fx.js';
+import { Compositor, TextLayer, TRANSITIONS, MIRRORS, EQ_LAYERS, TEXT_STYLES } from './fx.js';
 import { AudioEngine } from './audio.js';
 import { LogoScene, EmblemScene, Text29Scene } from './scenes/chrome.js';
 import { ParticleScene } from './scenes/particles.js';
@@ -26,13 +26,23 @@ const FONTS = [
   ['Exo İtalik', 'italic 900 {s}px Exo2, sans-serif'],
   ['Helvetica', '900 {s}px "Helvetica Neue", Arial, sans-serif'],
   ['Mono', '700 {s}px "SF Mono", Menlo, monospace'],
-  ['Serif', 'italic 700 {s}px Didot, "Bodoni 72", Georgia, serif']
+  ['Serif', 'italic 700 {s}px Didot, "Bodoni 72", Georgia, serif'],
+  ['Unbounded', '900 {s}px Unbounded, sans-serif', 0.02],
+  ['Monoton', '{s}px Monoton, sans-serif', 0.02],
+  ['Bungee 3D', '{s}px "Bungee Shade", sans-serif', 0.02],
+  ['Neon', '{s}px "Tilt Neon", sans-serif', 0.06],
+  ['Glitch', '{s}px "Rubik Glitch", sans-serif', 0.03],
+  ['Cinzel', '900 {s}px Cinzel, serif', 0.12],
+  ['Syne', '800 {s}px Syne, sans-serif', 0.02],
+  ['Kondanse', '900 {s}px "Big Shoulders Display", sans-serif', 0.05],
+  ['Bodoni', 'italic 900 {s}px "Bodoni Moda", serif', 0.03],
+  ['Michroma', '{s}px Michroma, sans-serif', 0.1]
 ];
 const DEFAULTS = {
   scene: 0, name: 'ONLYDEMIR', msgs: DEFAULT_MSGS, textMode: 0, msgEvery: 8, font: 0, textSize: 0.7, textPlace: 0, corner: false, textGlow: 0.25,
   auto: 'director', autoEvery: 32, lock: false, off: ['tunnel', 'fireworks', 'led', 'scope', 'rain', 'synth', 'lasers'], palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', bpm: 128,
   speed: 1, react: 1, beatSens: 1.3, bloom: 1, glitchAmt: 0.7, rgbAmt: 0.6, grain: 0.6, trails: 0, punch: 0.35, shake: 0.2, beatFlash: 0,
-  hue: 0, sat: 1, contrast: 1, vignette: 1, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, master: 1, quality: 1,
+  hue: 0, sat: 1, contrast: 1, vignette: 1, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, textStyle: 0, textShine: 0.6, lensStreak: 0.6, lensGhost: 0.35, lensDirt: 0.5, flareTint: 0, master: 1, quality: 1,
   clock: 'lock', offsetMs: 0, strobeDiv: 4, fb: 0, fbZoom: 1.02, fbRot: 0.004, fbHue: 0, astro: true, bustFin: 0, env: 'studio', icedVariant: 0, photoMotion: 1, photoCuts: true, cutEvery: 8, tone: 1, exposure: 1
 };
 const CFG_KEYS = Object.keys(DEFAULTS);
@@ -63,6 +73,8 @@ const loading = document.getElementById('loading');
 let ctx;
 try {
   await Promise.all([document.fonts.load('100px Anton', 'AİŞ'), document.fonts.load('italic 900 100px Exo2', 'AİŞ')]);
+  // the text canvas is only redrawn when its content changes, so every display font must be ready before the first frame
+  await Promise.all(FONTS.map(f => document.fonts.load(f[1].replace('{s}', 100), 'ONLYDEMİRŞĞıçö1923').catch(() => {})));
   ctx = await createContext(renderer);
 } catch (e) {
   loading.querySelector('small').textContent = 'Yüklenemedi: ' + e.message;
@@ -193,13 +205,17 @@ function frame(now) {
 
   // text
   const lines = textLines(A);
-  text.draw(lines, S.c1, FONTS[S.font][1], FONTS[S.font][2] ?? 0.04, S.textGlow);
+  const font = FONTS[S.font] || FONTS[0];
+  text.draw(lines, S.c1, font[1], font[2] ?? 0.04, S.textGlow, S.textStyle);
   const cu = fx.compose.uniforms;
   const onlyBeat = S.textMode === 2 && lines.length === 1 + (S.corner ? 1 : 0);
   cu.tText.value = text.tex;
   cu.uTextAlpha.value = (lines.length ? (onlyBeat ? Math.pow(Math.min(1, S.beat), 1.5) : 0.92 + S.beat * 0.08) : 0) * Math.min(1, mix * 1.5);
   cu.uTextScale.value = 1 + S.beat * 0.05 + S.drop * 0.1;
   if (lines[0]) cu.uTextCenter.value.set(lines[0].x, 1 - lines[0].y);
+  // one light sweep across the letters every two bars, locked to the beat clock
+  cu.uTextSweep.value = ((S.clockPhase || T * 2) / 8 % 1) * 2.6 - 0.5;
+  cu.uTextShine.value = S.textShine * (1 + S.drop);
   const spike = S.beat > 0.8 && Math.random() < 0.12 ? 0.35 : 0;
   const glitch = S.glitchHold ? 1 : Math.max(S.drop * 0.7, spike, mix < 1 && S.trans === 0 ? (1 - Math.abs(mix * 2 - 1)) * 0.4 : 0) * S.glitchAmt;
   cu.uTextGlitch.value = Math.min(1, Math.max(S.msgFlash, glitch));
@@ -220,6 +236,12 @@ function frame(now) {
   fx.trails.enabled = S.trails > 0.01;
   fx.trails.uniforms.damp.value = S.trails;
   fx.bloom.strength = (0.25 + S.beat * 0.25 + S.drop * 0.7) * S.bloom;
+  const lu = fx.lens.uniforms, lensKick = 1 + Math.min(1, S.beat) * 0.6 + S.drop * 1.5;
+  fx.lens.enabled = S.lensStreak + S.lensGhost + S.lensDirt > 0.01;
+  lu.uStreak.value = S.lensStreak * lensKick; lu.uGhost.value = S.lensGhost * (1 + S.drop); lu.uDirt.value = S.lensDirt;
+  if (S.flareTint === 0) lu.uTint.value.set(0.42, 0.62, 1);
+  else if (S.flareTint === 1) lu.uTint.value.copy(U.uC1.value).multiplyScalar(1.2).addScalar(0.08);
+  else lu.uTint.value.set(0.85, 0.82, 0.78);
   const fu = fx.final.uniforms;
   fu.uTime.value = T; fu.uBeat.value = Math.min(1, S.beat); fu.uGlitch.value = glitch;
   fu.uRGB.value = S.rgbAmt; fu.uGrain.value = S.grain;
@@ -444,6 +466,10 @@ const GROUPS = {
     { type: 'seg', key: 'eq', label: 'EQ katmanı, her sahnenin üstüne <kbd>Q</kbd>', options: EQ_LAYERS },
     { type: 'range', key: 'eqSize', label: 'EQ boyutu', min: 0.4, max: 2, fmt: mul },
     { type: 'range', key: 'bloom', label: 'Parlama (bloom)', min: 0, max: 3, fmt: mul },
+    { type: 'range', key: 'lensStreak', label: 'Anamorfik flare <kbd>A</kbd>', min: 0, max: 2, fmt: mul },
+    { type: 'seg', key: 'flareTint', label: 'Flare rengi', options: ['Sinema mavisi', 'Palet', 'Beyaz'] },
+    { type: 'range', key: 'lensGhost', label: 'Lens hayaletleri + hale', min: 0, max: 2, fmt: mul },
+    { type: 'range', key: 'lensDirt', label: 'Lens kiri (ışık vurunca)', min: 0, max: 2, fmt: mul },
     { type: 'range', key: 'glitchAmt', label: 'Glitch miktarı', min: 0, max: 2, fmt: mul },
     { type: 'range', key: 'rgbAmt', label: 'RGB kayma', min: 0, max: 3, fmt: mul },
     { type: 'range', key: 'trails', label: 'İz efekti <kbd>E</kbd>', min: 0, max: 0.97, fmt: pct },
@@ -483,6 +509,8 @@ const GROUPS = {
   g_text: [
     { type: 'seg', key: 'textMode', label: 'Yazı modu <kbd>N</kbd>', options: ['Kapalı', 'İsim', 'Vuruşta', 'Mesajlar'] },
     { type: 'seg', key: 'font', label: 'Font', options: FONTS.map(f => f[0]) },
+    { type: 'seg', key: 'textStyle', label: 'Yazı stili', options: TEXT_STYLES },
+    { type: 'range', key: 'textShine', label: 'Işık süzmesi (2 barda bir)', min: 0, max: 1.5, fmt: pct },
     { type: 'seg', key: 'textPlace', label: 'Konum', options: ['Sahneye göre', 'Üst', 'Orta', 'Alt'] },
     { type: 'range', key: 'textSize', label: 'Boyut', min: 0.3, max: 2.5, fmt: mul },
     { type: 'range', key: 'textGlow', label: 'Hale', min: 0, max: 1, fmt: pct },
@@ -658,6 +686,7 @@ addEventListener('keydown', e => {
   else if (k === 'e') S.trails = S.trails ? 0 : 0.88;
   else if (k === 'j') S.fb = S.fb ? 0 : 0.82;
   else if (k === 'x') S.rgbAmt = S.rgbAmt ? 0 : 1;
+  else if (k === 'a') S.lensStreak = S.lensStreak ? 0 : DEFAULTS.lensStreak;
   else if (k === 'n') S.textMode = (S.textMode + 1) % 4;
   else if (k === 'c') { const ks = Object.keys(PALETTES); const n = ks[(ks.indexOf(S.palette) + 1) % ks.length]; Object.assign(S, { palette: n, c1: PALETTES[n][1], c2: PALETTES[n][2] }); }
   else if (k === 'r') toggleRec();

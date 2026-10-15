@@ -245,7 +245,7 @@ export class CityScene {
     this.ctx = ctx;
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 2000);
-    ctx.loadHDR('city').then(t => { this.scene.background = t; this.scene.backgroundIntensity = 0.8; });
+    ctx.loadHDR('city').then(t => { this.scene.background = t; this.scene.backgroundIntensity = 0.3; });
     ctx.envMap('city').then(e => { this.scene.environment = e; });
     this.hero = new THREE.Group();
     this.scene.add(this.hero);
@@ -267,7 +267,7 @@ export class CityScene {
       this.hero.add(mesh);
       this.w = width;
     }
-    this.scene.backgroundIntensity = 0.75 + S.beat * 0.1;
+    this.scene.backgroundIntensity = (this.bgI ?? 0.3) * (1 + S.beat * 0.12);
     this.hero.position.y = 1.5 + Math.sin(t * 0.6) * 0.3;
     this.ringPivot.position.copy(this.hero.position);
     this.ringPivot.rotation.y = t * 0.5;

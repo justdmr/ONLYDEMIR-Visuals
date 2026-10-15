@@ -1,4 +1,4 @@
-// Post pipeline: scene A/B -> compose (transition, mirror, punch/shake, EQ overlay, text) -> trails -> bloom -> final (glitch, RGB, grade, grain, sRGB)
+// Post pipeline: scene A/B -> compose (transition, mirror, punch/shake, EQ overlay, text) -> trails -> lens (streaks, ghosts, dirt) -> bloom -> final (glitch, RGB, grade, grain, sRGB)
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
@@ -19,12 +19,13 @@ const ComposeShader = {
     uMix: { value: 1 }, uTrans: { value: 0 }, uTime: { value: 0 }, uMirror: { value: 0 }, uAspect: { value: 1.78 },
     uPunch: { value: 0 }, uShake: { value: new THREE.Vector2() }, uEQ: { value: 0 }, uEQSize: { value: 1 },
     uC1: { value: new THREE.Vector3(0.89, 0.04, 0.09) }, uC2: { value: new THREE.Vector3(1, 1, 1) }, uBass: { value: 0 },
-    uTextAlpha: { value: 0 }, uTextScale: { value: 1 }, uTextCenter: { value: new THREE.Vector2(0.5, 0.5) }, uTextGlitch: { value: 0 }
+    uTextAlpha: { value: 0 }, uTextScale: { value: 1 }, uTextCenter: { value: new THREE.Vector2(0.5, 0.5) }, uTextGlitch: { value: 0 },
+    uTextSweep: { value: -1 }, uTextShine: { value: 0 }
   },
   vertexShader: VERT,
   fragmentShader: `
 uniform sampler2D tA, tB, tText, uSpec, uWave;
-uniform float uMix, uTrans, uTime, uMirror, uAspect, uPunch, uEQ, uEQSize, uBass, uTextAlpha, uTextScale, uTextGlitch;
+uniform float uMix, uTrans, uTime, uMirror, uAspect, uPunch, uEQ, uEQSize, uBass, uTextAlpha, uTextScale, uTextGlitch, uTextSweep, uTextShine;
 uniform vec2 uShake, uTextCenter;
 uniform vec3 uC1, uC2;
 varying vec2 vUv;
@@ -125,6 +126,9 @@ void main(){
   vec4 t=texture2D(tText,tuv);
   float ghost=texture2D(tText,tuv+vec2(0.008,0.002)*uTextGlitch).a;
   c=mix(c,t.rgb*1.3,t.a*uTextAlpha);
+  // specular glint sliding across the solid part of the letters
+  float sw=exp(-pow((tuv.x+(1.0-tuv.y)*0.35-uTextSweep)*14.0,2.0));
+  c+=vec3(1.0,0.97,0.92)*sw*smoothstep(0.55,1.0,t.a)*dot(t.rgb,vec3(0.33))*uTextShine*uTextAlpha*2.5;
   c+=lin(uC1)*ghost*(1.0-t.a)*uTextGlitch*uTextAlpha*1.5;
   gl_FragColor=vec4(c,1.0);
 }`
@@ -224,6 +228,146 @@ void main(){
   }
 }
 
+// seeded so the dirt pattern is the same every time the app starts
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+// lens dirt: dust specks, soft smudges, dried water spots with brighter rims and a few wipe marks; only shows where light hits it
+function dirtTexture() {
+  const W = 1024, H = 576, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d'), r = rng(1923);
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  g.globalCompositeOperation = 'lighter';
+  const blob = (x, y, rad, a, rim) => {
+    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+    if (rim) { gr.addColorStop(0, `rgba(255,255,255,${a * 0.35})`); gr.addColorStop(0.82, `rgba(255,255,255,${a * 0.5})`); gr.addColorStop(0.93, `rgba(255,255,255,${a})`); }
+    else { gr.addColorStop(0, `rgba(255,255,255,${a})`); gr.addColorStop(0.6, `rgba(255,255,255,${a * 0.4})`); }
+    gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
+  };
+  for (let i = 0; i < 70; i++) blob(r() * W, r() * H, 30 + r() * 140, 0.03 + r() * 0.06, false);
+  for (let i = 0; i < 55; i++) blob(r() * W, r() * H, 8 + r() * 40, 0.05 + r() * 0.12, true);
+  for (let i = 0; i < 900; i++) blob(r() * W, r() * H, 0.6 + Math.pow(r(), 3) * 6, 0.15 + r() * 0.5, false);
+  for (let i = 0; i < 9; i++) {
+    g.save(); g.translate(r() * W, r() * H); g.rotate(r() * Math.PI); g.scale(1, 0.08 + r() * 0.1);
+    blob(0, 0, 120 + r() * 220, 0.035 + r() * 0.04, false); g.restore();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.minFilter = THREE.LinearFilter; t.generateMipmaps = false;
+  return t;
+}
+
+// Physically-inspired lens: anamorphic horizontal streaks, mirrored ghosts + halo with chromatic fringing, and lens dirt
+// lit by the bright parts of the frame. Everything is computed at quarter resolution from a thresholded copy.
+class LensPass extends Pass {
+  constructor() {
+    super();
+    const opts = { type: THREE.HalfFloatType, depthBuffer: false };
+    this.rt = { bright: new THREE.WebGLRenderTarget(1, 1, opts), sa: new THREE.WebGLRenderTarget(1, 1, opts), sb: new THREE.WebGLRenderTarget(1, 1, opts),
+      ghost: new THREE.WebGLRenderTarget(1, 1, opts), gb: new THREE.WebGLRenderTarget(1, 1, opts), tiny: new THREE.WebGLRenderTarget(1, 1, opts),
+      avg: new THREE.WebGLRenderTarget(1, 1, opts), avg2: new THREE.WebGLRenderTarget(1, 1, opts) };
+    const mat = (uniforms, fs) => new FullScreenQuad(new THREE.ShaderMaterial({ uniforms, vertexShader: VERT, fragmentShader: fs, depthTest: false, depthWrite: false }));
+    // local average luminance (1/16 res box of the frame) so that only point-like highlights, brighter than their
+    // surroundings, feed the lens: large bright areas (skies, LED walls, chrome faces) stay clean
+    this.avgQ = mat({ t: { value: null }, uTexel: { value: new THREE.Vector2() } }, `
+uniform sampler2D t; uniform vec2 uTexel; varying vec2 vUv;
+void main(){ vec3 s=vec3(0.0); for(int y=0;y<4;y++) for(int x=0;x<4;x++) s+=texture2D(t,vUv+(vec2(float(x),float(y))-1.5)*uTexel*4.0).rgb; gl_FragColor=vec4(s/16.0,1.0); }`);
+    this.brightQ = mat({ t: { value: null }, tAvg: { value: null }, uTexel: { value: new THREE.Vector2() }, uThresh: { value: 1.6 }, uAdapt: { value: 1.6 } }, `
+uniform sampler2D t, tAvg; uniform vec2 uTexel; uniform float uThresh, uAdapt; varying vec2 vUv;
+float lum(vec3 c){ return max(c.r,max(c.g,c.b)); }
+void main(){
+  float th=uThresh+uAdapt*lum(texture2D(tAvg,vUv).rgb);
+  vec3 c=vec3(0.0);
+  for(int i=0;i<4;i++){
+    vec2 o=vec2(i==0||i==2?-1.0:1.0,i<2?-1.0:1.0);
+    vec3 s=texture2D(t,vUv+o*uTexel).rgb; float l=lum(s);
+    float k=max(l-th,0.0); c+=s*(k*k/(k+th))/max(l,1e-4);
+  }
+  c*=0.25;
+  // soft-compress so a field of very hot pixels (city lights, chrome hits) can't blow the lens out
+  gl_FragColor=vec4(c/(1.0+lum(c)*0.6),1.0);
+}`);
+    // one horizontal blur step; three of them with growing stride make a long streak
+    this.streakQ = mat({ t: { value: null }, uStep: { value: 1 }, uTexel: { value: new THREE.Vector2() } }, `
+uniform sampler2D t; uniform float uStep; uniform vec2 uTexel; varying vec2 vUv;
+void main(){ vec3 s=texture2D(t,vUv).rgb; float w=1.0;
+  for(int i=1;i<=8;i++){ float k=pow(0.84,float(i)); vec2 o=vec2(float(i)*uStep*uTexel.x,0.0); s+=(texture2D(t,vUv+o).rgb+texture2D(t,vUv-o).rgb)*k; w+=2.0*k; }
+  gl_FragColor=vec4(s/w,1.0); }`);
+    this.ghostQ = mat({ t: { value: null }, uAspect: { value: 1.78 } }, `
+uniform sampler2D t; uniform float uAspect; varying vec2 vUv;
+vec3 chroma(vec2 uv,vec2 dir){ return vec3(texture2D(t,uv+dir*0.012).r,texture2D(t,uv).g,texture2D(t,uv-dir*0.012).b); }
+void main(){
+  vec2 tc=1.0-vUv;
+  vec2 gv=(0.5-tc)*0.38;
+  vec2 dir=normalize(gv+1e-5);
+  vec3 c=vec3(0.0);
+  for(int i=1;i<5;i++){
+    vec2 o=fract(tc+gv*float(i));
+    float w=pow(max(0.0,1.0-length(0.5-o)/0.7071),12.0);
+    vec3 tint=mix(vec3(1.0,0.62,0.32),vec3(0.35,0.75,1.0),fract(float(i)*0.37));
+    c+=chroma(o,dir)*w*tint;
+  }
+  vec2 hv=dir*vec2(1.0/uAspect,1.0)*0.36;
+  vec2 ho=tc+hv;
+  float hw=pow(max(0.0,1.0-length((0.5-ho)*vec2(uAspect,1.0))/(0.7071*uAspect)),4.0);
+  c+=chroma(ho,dir)*hw*vec3(0.7,0.85,1.0)*0.6;
+  gl_FragColor=vec4(c,1.0);
+}`);
+    this.blurQ = mat({ t: { value: null }, uTexel: { value: new THREE.Vector2() } }, `
+uniform sampler2D t; uniform vec2 uTexel; varying vec2 vUv;
+void main(){ vec3 s=vec3(0.0); float w=0.0;
+  for(int y=-2;y<=2;y++) for(int x=-2;x<=2;x++){ float k=exp(-float(x*x+y*y)*0.35); s+=texture2D(t,vUv+vec2(float(x),float(y))*uTexel*1.6).rgb*k; w+=k; }
+  gl_FragColor=vec4(s/w,1.0); }`);
+    this.uniforms = {
+      tScene: { value: null }, tStreak: { value: null }, tGhost: { value: null }, tTiny: { value: null }, tDirt: { value: dirtTexture() },
+      uStreak: { value: 0.6 }, uGhost: { value: 0.35 }, uDirt: { value: 0.5 }, uTint: { value: new THREE.Vector3(0.45, 0.65, 1) }, uAspect: { value: 1.78 }
+    };
+    this.comp = mat(this.uniforms, `
+uniform sampler2D tScene, tStreak, tGhost, tTiny, tDirt; uniform float uStreak, uGhost, uDirt, uAspect; uniform vec3 uTint; varying vec2 vUv;
+void main(){
+  vec3 c=texture2D(tScene,vUv).rgb;
+  vec2 duv=(vUv-0.5)*vec2(min(1.0,uAspect/1.7778),min(1.0,1.7778/uAspect))+0.5;
+  float dirt=texture2D(tDirt,duv).r;
+  vec3 st=texture2D(tStreak,vUv).rgb, gh=texture2D(tGhost,vUv).rgb, glow=texture2D(tTiny,vUv).rgb;
+  float sl=dot(st,vec3(0.3333));
+  c+=uTint*sl*uStreak*2.0*(1.0+dirt*uDirt*1.5);
+  c+=gh*uGhost*2.5*(1.0+dirt*uDirt*2.0);
+  c+=(glow*2.0+st*0.5)*dirt*uDirt*1.4;
+  gl_FragColor=vec4(c,1.0);
+}`);
+  }
+  setSize(w, h) {
+    const q = [Math.max(1, Math.round(w / 4)), Math.max(1, Math.round(h / 4))];
+    ['bright', 'sa', 'sb', 'ghost', 'gb'].forEach(k => this.rt[k].setSize(...q));
+    this.rt.avg.setSize(Math.max(1, Math.round(w / 16)), Math.max(1, Math.round(h / 16)));
+    this.rt.avg2.setSize(Math.max(1, Math.round(w / 16)), Math.max(1, Math.round(h / 16)));
+    this.rt.tiny.setSize(Math.max(1, Math.round(w / 32)), Math.max(1, Math.round(h / 32)));
+    this.full = [w, h]; this.q = q;
+    this.uniforms.uAspect.value = this.ghostQ.material.uniforms.uAspect.value = w / h;
+  }
+  render(renderer, writeBuffer, readBuffer) {
+    const { rt } = this, [qw, qh] = this.q;
+    const run = (quad, target) => { renderer.setRenderTarget(target); quad.render(renderer); };
+    let u = this.avgQ.material.uniforms;
+    u.t.value = readBuffer.texture; u.uTexel.value.set(1 / this.full[0], 1 / this.full[1]);
+    run(this.avgQ, rt.avg);
+    u = this.blurQ.material.uniforms; u.t.value = rt.avg.texture; u.uTexel.value.set(16 / this.full[0], 16 / this.full[1]); run(this.blurQ, rt.avg2);
+    u = this.brightQ.material.uniforms;
+    u.t.value = readBuffer.texture; u.tAvg.value = rt.avg2.texture; u.uTexel.value.set(1 / this.full[0], 1 / this.full[1]);
+    run(this.brightQ, rt.bright);
+    u = this.streakQ.material.uniforms; u.uTexel.value.set(1 / qw, 1 / qh);
+    u.t.value = rt.bright.texture; u.uStep.value = 1; run(this.streakQ, rt.sa);
+    u.t.value = rt.sa.texture; u.uStep.value = 6; run(this.streakQ, rt.sb);
+    u.t.value = rt.sb.texture; u.uStep.value = 30; run(this.streakQ, rt.sa);
+    // wide soft glow (1/32): lights the dirt and is the source of the ghosts, so they read as soft aperture discs
+    u = this.blurQ.material.uniforms; u.t.value = rt.bright.texture; u.uTexel.value.set(5 / qw, 5 / qh); run(this.blurQ, rt.tiny);
+    this.ghostQ.material.uniforms.t.value = rt.tiny.texture; run(this.ghostQ, rt.ghost);
+    u.t.value = rt.ghost.texture; u.uTexel.value.set(1 / qw, 1 / qh); run(this.blurQ, rt.gb);
+    this.uniforms.tScene.value = readBuffer.texture; this.uniforms.tStreak.value = rt.sa.texture;
+    this.uniforms.tGhost.value = rt.gb.texture; this.uniforms.tTiny.value = rt.tiny.texture;
+    run(this.comp, this.renderToScreen ? null : writeBuffer);
+  }
+}
+
 export class Compositor {
   constructor(renderer) {
     this.renderer = renderer;
@@ -236,9 +380,10 @@ export class Compositor {
     this.feedback.enabled = false;
     this.trails = new AfterimagePass(0.88);
     this.trails.enabled = false;
+    this.lens = new LensPass();
     this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.25, 0.45, 0.85);
     this.final = new ShaderPass(FinalShader);
-    [this.compose, this.feedback, this.trails, this.bloom, this.final].forEach(p => this.composer.addPass(p));
+    [this.compose, this.feedback, this.trails, this.lens, this.bloom, this.final].forEach(p => this.composer.addPass(p));
   }
   setSize(w, h, pr) {
     this.rtA.setSize(w * pr, h * pr);
@@ -281,29 +426,74 @@ export class TextLayer {
     this.makeTex();
     this.key = '';
   }
-  // lines: [{ t, x, y, s (height fraction), w (max width fraction), c (colour) }]; glow = css colour of the halo
-  draw(lines, glow, font, tracking = 0.04, glowAmt = 1) {
-    const key = JSON.stringify([lines, glow, font, tracking, glowAmt]);
+  // lines: [{ t, x, y, s (height fraction), w (max width fraction), c (colour) }]; glow = css colour of the halo; style = TEXT_STYLES index
+  draw(lines, glow, font, tracking = 0.04, glowAmt = 1, style = 0) {
+    const key = JSON.stringify([lines, glow, font, tracking, glowAmt, style]);
     if (key === this.key) return false;
     this.key = key;
     const { g, canvas: { width: W, height: H } } = this;
     g.clearRect(0, 0, W, H);
     g.textAlign = 'center';
     g.textBaseline = 'middle';
+    g.lineJoin = 'round';
     for (const l of lines) {
       let size = H * l.s;
       const setFont = s => { g.font = font.replace('{s}', s); if ('letterSpacing' in g) g.letterSpacing = `${s * tracking}px`; };
       setFont(size);
       const tw = g.measureText(l.t).width;
       if (tw > W * l.w) { size *= W * l.w / tw; setFont(size); }
-      g.shadowColor = glow;
-      g.shadowBlur = size * 0.35 * glowAmt;
-      g.fillStyle = l.c || '#fff';
-      g.fillText(l.t, W * l.x, H * l.y);
-      g.shadowBlur = 0;
-      g.fillText(l.t, W * l.x, H * l.y);
+      const x = W * l.x, y = H * l.y, col = l.c || '#fff';
+      g.save();
+      (TEXT_DRAW[style] || TEXT_DRAW[0])(g, l.t, x, y, size, col, glow, glowAmt);
+      g.restore();
     }
     this.tex.needsUpdate = true;
     return true;
   }
 }
+
+// polished-metal fill: bright sky on top, a dark horizon line through the middle, reflected floor below
+const METALS = {
+  chrome: [[0, '#ffffff'], [0.3, '#d3dae4'], [0.47, '#565c68'], [0.5, '#16181e'], [0.54, '#7d838e'], [0.78, '#f4f6f9'], [1, '#a2a8b2']],
+  gold: [[0, '#fff7d6'], [0.28, '#f3d27a'], [0.47, '#9c6a17'], [0.5, '#5a3804'], [0.55, '#c08a2c'], [0.8, '#ffe6a0'], [1, '#b07d26']]
+};
+function metalText(g, t, x, y, s, glow, glowAmt, stops, edge) {
+  const m = g.measureText(t);
+  const gr = g.createLinearGradient(0, y - (m.actualBoundingBoxAscent || s * 0.4), 0, y + (m.actualBoundingBoxDescent || s * 0.4));
+  stops.forEach(([o, c]) => gr.addColorStop(o, c));
+  g.shadowColor = glow; g.shadowBlur = s * 0.3 * glowAmt; g.fillStyle = edge; g.fillText(t, x, y);
+  g.shadowBlur = 0;
+  g.lineWidth = s * 0.045; g.strokeStyle = edge; g.strokeText(t, x, y);
+  g.fillStyle = gr; g.fillText(t, x, y);
+  g.lineWidth = Math.max(1, s * 0.008); g.strokeStyle = 'rgba(255,255,255,.55)'; g.strokeText(t, x, y - s * 0.004);
+}
+export const TEXT_STYLES = ['Düz', 'Neon tüp', 'Krom', 'Altın', 'Kontur', '3D blok'];
+const TEXT_DRAW = [
+  (g, t, x, y, s, col, glow, ga) => {
+    g.shadowColor = glow; g.shadowBlur = s * 0.35 * ga; g.fillStyle = col; g.fillText(t, x, y);
+    g.shadowBlur = 0; g.fillText(t, x, y);
+  },
+  // glass tube: wide coloured halo passes, then a hot near-white core
+  (g, t, x, y, s, col, glow, ga) => {
+    g.strokeStyle = glow; g.shadowColor = glow; g.lineWidth = s * 0.05;
+    for (const b of [0.9, 0.45, 0.16]) { g.shadowBlur = s * b * Math.max(0.35, ga); g.strokeText(t, x, y); }
+    g.shadowBlur = s * 0.04; g.shadowColor = '#fff'; g.lineWidth = s * 0.02; g.strokeStyle = '#fff6f6'; g.strokeText(t, x, y);
+  },
+  (g, t, x, y, s, col, glow, ga) => metalText(g, t, x, y, s, glow, ga, METALS.chrome, '#07080b'),
+  (g, t, x, y, s, col, glow, ga) => metalText(g, t, x, y, s, glow, ga, METALS.gold, '#1d1000'),
+  (g, t, x, y, s, col, glow, ga) => {
+    g.shadowColor = glow; g.shadowBlur = s * 0.25 * ga; g.lineWidth = Math.max(1.5, s * 0.022); g.strokeStyle = col; g.strokeText(t, x, y);
+    g.shadowBlur = 0; g.strokeText(t, x, y);
+  },
+  // extruded block letters: stacked copies in the palette colour, shaded darker toward the back
+  (g, t, x, y, s, col, glow, ga) => {
+    const n = Math.max(6, Math.round(s * 0.07)), dx = 0.7, dy = 1;
+    g.shadowColor = 'rgba(0,0,0,.8)'; g.shadowBlur = s * 0.12; g.fillStyle = '#000'; g.fillText(t, x + n * dx, y + n * dy);
+    g.shadowBlur = 0;
+    for (let k = n; k >= 1; k--) {
+      g.fillStyle = glow; g.fillText(t, x + k * dx, y + k * dy);
+      g.fillStyle = `rgba(0,0,0,${0.15 + 0.55 * k / n})`; g.fillText(t, x + k * dx, y + k * dy);
+    }
+    g.shadowColor = glow; g.shadowBlur = s * 0.2 * ga; g.fillStyle = col; g.fillText(t, x, y);
+  }
+];

@@ -1,6 +1,10 @@
 #!/bin/bash
 # Keep trying the missing stills (free GPU quota resets over time), then build their depth maps.
 cd "$(dirname "$0")/.."
+# depth: ONNX Runtime build of Depth Anything V2 Small if available (no torch / Hugging Face needed), else transformers
+if tools/.venv/bin/python -c "import onnxruntime" 2>/dev/null; then DEPTH="tools/.venv/bin/python tools/depth_onnx.py"
+else DEPTH="tools/.venv/bin/python tools/depth_local.py"; fi
+PY=python3; tools/.venv/bin/python -c "import PIL" 2>/dev/null && PY=tools/.venv/bin/python
 prompt_for() {
   case "$1" in
     neon) echo "5|cinematic night photograph of a narrow rainy Tokyo back alley, a glowing red neon sign on a dark brick wall that spells ONLYDEMIR in elegant bold italic neon tube letters, wet asphalt with long colorful reflections, steam, light rain, volumetric haze, puddles, shallow depth of field, shot on 35mm anamorphic lens, photorealistic, 8k" ;;
@@ -16,10 +20,10 @@ for round in $(seq 1 15); do
     [ -f "assets/photo/${k}_depth.png" ] && continue
     if [ ! -f "assets/photo/$k.jpg" ]; then
       pv="$(prompt_for $k)"; seed="${pv%%|*}"; prompt="${pv#*|}"
-      python3 tools/gen.py "assets/photo/$k.jpg" "$seed" "$prompt" schnell 1920 1088 >/dev/null 2>&1
+      $PY tools/gen.py "assets/photo/$k.jpg" "$seed" "$prompt" schnell 1920 1088 >/dev/null 2>&1
     fi
     if [ -f "assets/photo/$k.jpg" ]; then
-      tools/.venv/bin/python tools/depth_local.py "assets/photo/$k.jpg" 2>/dev/null | grep '^ok'
+      $DEPTH "assets/photo/$k.jpg" 2>/dev/null | grep '^ok'
     else left=$((left+1)); fi
   done
   echo "round $round: $left left"

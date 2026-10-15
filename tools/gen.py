@@ -1,5 +1,5 @@
 # Generate an image with a FLUX Hugging Face space.  usage: gen.py out.jpg seed "prompt" [dev|schnell] [w] [h]
-import json, sys, urllib.request, re, subprocess
+import json, os, sys, urllib.request, re, subprocess
 out, seed, prompt = sys.argv[1], int(sys.argv[2]), sys.argv[3]
 model = sys.argv[4] if len(sys.argv) > 4 else 'dev'
 w = int(sys.argv[5]) if len(sys.argv) > 5 else 1920
@@ -26,6 +26,10 @@ if not m:
     print('FAILED', res[-300:]); sys.exit(1)
 tmp = out + '.webp'
 urllib.request.urlretrieve(m[0], tmp)
-subprocess.run(['sips', '-s', 'format', 'jpeg', '-s', 'formatOptions', '95', tmp, '--out', out], capture_output=True)
-subprocess.run(['rm', tmp])
+try:  # Pillow works everywhere (cloud/Linux); sips is the macOS fallback
+    from PIL import Image
+    Image.open(tmp).convert('RGB').save(out, 'JPEG', quality=95)
+except ImportError:
+    subprocess.run(['sips', '-s', 'format', 'jpeg', '-s', 'formatOptions', '95', tmp, '--out', out], capture_output=True)
+os.remove(tmp)
 print('ok', out)
