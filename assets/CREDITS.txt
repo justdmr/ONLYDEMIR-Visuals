@@ -21,12 +21,9 @@ Depth maps (assets/photo/*_depth.png)
 
 Fonts (SIL Open Font License 1.1), via Fontsource
   Anton, Exo 2, Unbounded, Monoton, Bungee Shade, Tilt Neon, Rubik Glitch, Cinzel, Syne,
-  Big Shoulders Display, Bodoni Moda, Michroma
+  Big Shoulders Display, Bodoni Moda, Michroma, Jost, JetBrains Mono, Playfair Display, Bebas Neue, Orbitron,
+  Cormorant Garamond, Space Grotesk
 three.js r160 (MIT)
 
-Space footage (assets/video/*.webm) — NASA Scientific Visualization Studio, https://svs.gsfc.nasa.gov
-  NASA imagery is not copyrighted (public domain in the US); no NASA insignia/logos are shown.
-  Credit line for recordings: "Space footage: NASA's Scientific Visualization Studio / Goddard / STScI".
-  Sources (SVS id): pulsar 20417, supernova 20413, nebula_a/b (Cat's Paw, Webb/STScI) 31356,
-  nova1-3 20393, enceladus_* 20384, earthrise/earthrise_chase 4593, moon_earthrise/moon_crater/moon_sunrise 4791,
-  moon_descent 4468, aurora 15077, sun_gold/sun_red (SDO AIA 171/304) 4761. Trimmed, titles/time stamps cropped, re-encoded.
+Poly Haven (CC0) for the 'Dökümhane' scene: industrial_workshop_foundry HDRI (assets/hdri),
+  rusty_metal_02 and concrete_floor_worn_001 PBR textures (assets/tex)

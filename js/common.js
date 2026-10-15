@@ -145,6 +145,7 @@ export const ENVS = {
   neon: ['Neon stüdyo', 'assets/hdri/neon_photostudio_2k.hdr'],
   city: ['Şanghay gece', 'assets/hdri/shanghai_bund_4k.hdr'],
   rooftop: ['Çatı gecesi', 'assets/hdri/rooftop_night_2k.hdr'],
+  foundry: ['Dökümhane', 'assets/hdri/industrial_workshop_foundry_2k.hdr'],
   classic: ['Klasik', null]
 };
 

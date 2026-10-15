@@ -24,7 +24,7 @@ function loadBust() {
 
 // floating haze motes: soft round points with a clamped size that fade out near the lens, so an orbiting
 // camera never ends up with one mote filling the screen
-function haze(n, spread, color = 0xffffff) {
+export function haze(n, spread, color = 0xffffff) {
   const pos = new Float32Array(n * 3), rnd = new Float32Array(n);
   for (let i = 0; i < n; i++) { pos.set([(Math.random() - 0.5) * spread[0], Math.random() * spread[1], (Math.random() - 0.5) * spread[2]], i * 3); rnd[i] = Math.random(); }
   const g = new THREE.BufferGeometry();
@@ -84,7 +84,7 @@ function darkStudio(renderer) {
 }
 
 // soft volumetric shaft in haze: an open cone, brightest at its apex, faded at the rim and drifting with noise
-function lightShaft(color, len, rad) {
+export function lightShaft(color, len, rad) {
   const geo = new THREE.ConeGeometry(rad, len, 48, 1, true);
   geo.translate(0, -len / 2, 0);
   const mat = new THREE.ShaderMaterial({

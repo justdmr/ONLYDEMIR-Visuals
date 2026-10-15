@@ -14,8 +14,9 @@ import { BeatClock, CLOCK_MODES } from './clock.js';
 import { CityScene, BustScene, TVWallScene, BUST_FIN } from './scenes/real.js';
 import { PhotoScene, PHOTO_DEFS } from './scenes/photo.js';
 import { Sting } from './sting.js';
+import { Brand, BRAND_FONTS, BRAND_ANIMS } from './brand.js';
 import { IronScene, ParticleEntityScene } from './scenes/entity.js';
-import { VideoScene, StoryScene, CLIPS } from './scenes/video.js';
+import { FoundryScene } from './scenes/foundry.js';
 
 // ---------- settings ----------
 const store = {
@@ -43,14 +44,14 @@ const FONTS = [
 ];
 const DEFAULTS = {
   scene: 0, name: 'ONLYDEMIR', msgs: DEFAULT_MSGS, textMode: 0, msgEvery: 8, font: 0, textSize: 0.7, textPlace: 0, corner: false, textGlow: 0.25,
-  auto: 'seq', autoEvery: 32, lock: false, off: ['tunnel', 'fireworks', 'led', 'scope', 'rain', 'synth', 'lasers'], palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', bpm: 128,
+  auto: 'seq', autoEvery: 32, lock: false, off: ['tunnel', 'fireworks', 'led', 'scope', 'rain', 'synth', 'lasers', 'liquid', 'fractal', 'radial', 'rings', 'terrain', 'spectrum', 'ata', 'balloons', 'holo', 'iced', 'vinyl', '29', 'particles', 'emblem', 'tvwall'], palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', bpm: 128,
   speed: 1, react: 1, beatSens: 1.3, bloom: 0.7, glitchAmt: 0.15, rgbAmt: 0.1, grain: 0.15, trails: 0, punch: 0.1, shake: 0, beatFlash: 0, dropFlash: 0.15,
-  hue: 0, sat: 1, contrast: 1.05, vignette: 0.7, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, textStyle: 0, textShine: 0.6, sc: {}, lensStreak: 0.25, lensGhost: 0, lensDirt: 0, flareTint: 0, sting: true, dropGlass: false, loopTrans: 'scene', master: 1, quality: 1,
+  hue: 0, sat: 1, contrast: 1.05, vignette: 0.7, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, textStyle: 0, textShine: 0.6, sc: {}, lensStreak: 0.25, lensGhost: 0, lensDirt: 0, flareTint: 0, sting: true, brand: true, brandGap: 4, brandSize: 0.7, dropGlass: false, loopTrans: 'scene', master: 1, quality: 1,
   clock: 'lock', offsetMs: 0, strobeDiv: 4, fb: 0, fbZoom: 1.02, fbRot: 0.004, fbHue: 0, astro: true, bustFin: 0, env: 'studio', icedVariant: 0, photoMotion: 1, photoCuts: true, cutEvery: 8, tone: 1, exposure: 1
 };
 const CFG_KEYS = Object.keys(DEFAULTS);
 // one-time move of older saved settings to the new pro defaults (keeps name, messages and colours)
-const CFG_VERSION = 4;
+const CFG_VERSION = 5;
 const fromVersion = store.get('cfgVersion', 1);
 if (fromVersion < 3) {
   const old = store.get('cfg', {});
@@ -65,6 +66,13 @@ const LOOK_RESET = ['bloom', 'glitchAmt', 'rgbAmt', 'grain', 'punch', 'shake', '
 if (fromVersion < 4) {
   const old = store.get('cfg', {});
   LOOK_RESET.forEach(k => delete old[k]);
+  store.set('cfg', old);
+}
+// v5: the ONLYDEMIR brand layer replaces the old always-on name text (same font every time), and the
+// footage scenes are gone; the loop goes back to the default selection.
+if (fromVersion < 5) {
+  const old = store.get('cfg', {});
+  ['textMode', 'corner', 'off', 'scene', 'brand'].forEach(k => delete old[k]);
   store.set('cfg', old);
   store.set('cfgVersion', CFG_VERSION);
 }
@@ -88,7 +96,7 @@ let ctx;
 try {
   await Promise.all([document.fonts.load('100px Anton', 'AİŞ'), document.fonts.load('italic 900 100px Exo2', 'AİŞ')]);
   // the text canvas is only redrawn when its content changes, so every display font must be ready before the first frame
-  await Promise.all(FONTS.map(f => document.fonts.load(f[1].replace('{s}', 100), 'ONLYDEMİRŞĞıçö1923').catch(() => {})));
+  await Promise.all([...FONTS.map(f => f[1]), ...BRAND_FONTS].map(f => document.fonts.load(f.replace('{s}', 100), 'ONLYDEMİRŞĞıçö1923').catch(() => {})));
   ctx = await createContext(renderer);
 } catch (e) {
   loading.querySelector('small').textContent = 'Yüklenemedi: ' + e.message;
@@ -97,6 +105,7 @@ try {
 const fx = new Compositor(renderer);
 const text = new TextLayer();
 const sting = new Sting(ctx);
+const brand = new Brand();
 const audio = new AudioEngine(S);
 const clock = new BeatClock(S);
 audio.on('onset', () => clock.onset());
@@ -104,7 +113,7 @@ ctx.U.uSpec.value.image.data = audio.spec;
 ctx.U.uWave.value.image.data = audio.wave;
 
 const GLASS = TRANSITIONS.indexOf('Cam kırılma');
-const CATS = { space: 'Uzay · Gerçek NASA görüntüsü', pro: 'Fotogerçekçi · 2.5D', ent: 'Sinematik 3D · Demir', name: 'İsim · Sahne', '3d': '3D · Logo', tr: '29 Ekim', eq: 'Ekolayzır', psy: 'Psikedelik' };
+const CATS = { pro: 'Fotogerçekçi · 2.5D', ent: 'Sinematik 3D · Demir', name: 'İsim · Sahne', '3d': '3D · Logo', tr: '29 Ekim', eq: 'Ekolayzır', psy: 'Psikedelik' };
 // photoreal 2.5D scenes come first; skip any whose image/depth pair is missing
 const photoOk = await Promise.all(PHOTO_DEFS.map(d => fetch(`assets/photo/${d.variants[0]}_depth.png`, { method: 'HEAD' }).then(r => r.ok).catch(() => false)));
 const scenes = [
@@ -116,14 +125,14 @@ const scenes = [
   new CityScene(ctx), new BustScene(ctx), new TVWallScene(ctx),
   new EarthScene(ctx), new BlackHoleScene(ctx), new NeonScene(ctx), new VinylScene(ctx), new BalloonScene(ctx), new HologramScene(ctx),
   // appended last so existing keyboard / MIDI pad numbers keep pointing at the same scenes
-  new IronScene(ctx), new ParticleEntityScene(ctx),
-  new StoryScene(ctx), ...Object.keys(CLIPS).map(k => new VideoScene(ctx, k))
+  new IronScene(ctx), new ParticleEntityScene(ctx), new FoundryScene(ctx)
 ];
-if (fromVersion < 4) { S.off = scenes.filter(s => s.cat !== 'space').map(s => s.key); S.scene = Math.max(0, scenes.findIndex(s => s.key === 'v_story')); save(); }
 const DEFAULT_CAT = { logo: '3d', emblem: '3d', particles: '3d', flag: 'tr', 29: 'tr', spectrum: 'eq', tunnel: 'tr', ata: 'tr', fireworks: 'tr' };
 scenes.forEach(s => { s.cat = s.cat || DEFAULT_CAT[s.key] || 'psy'; });
+const OWN_NAME = new Set(['logo', '29', 'particles', 'earth', 'iced', 'blackhole', 'neon', 'vinyl', 'balloons', 'holo', 'icedphoto', 'city', 'bust', 'tvwall', 'foundry', 'p_iced', 'p_stage', 'p_velvet', 'p_rooftop', 'p_monolith']);
 const byKey = k => scenes.findIndex(s => s.key === k);
 
+if (fromVersion < 5) S.scene = Math.max(0, scenes.findIndex(s => s.key === 'foundry'));
 let cur = Math.min(S.scene, scenes.length - 1), prev = -1, mix = 1, transDur = 1, transType = S.trans;
 
 // which transition leads into scene i: the scene's own choice (⚙), or random / cycling through all of them for the loop
@@ -214,6 +223,7 @@ function resize() {
   ctx.U.uRes.value.set(w * pr, h * pr);
   scenes.forEach(s => s.resize(w * pr, h * pr));
   sting.resize(w * pr, h * pr);
+  brand.setSize(w * pr, h * pr);
 }
 
 // ---------- loop ----------
@@ -257,6 +267,9 @@ function frame(now) {
   cu.tText.value = text.tex;
   cu.uTextAlpha.value = (lines.length ? (onlyBeat ? Math.pow(Math.min(1, S.beat), 1.5) : 0.92 + S.beat * 0.08) : 0) * Math.min(1, mix * 1.5) * (1 - stingA);
   cu.uSting.value = stingA; cu.uStingDim.value = stingA * 0.72;
+  // scenes that already show the name in 3D only get the small (lower third / corner) appearances
+  fx.final.uniforms.uBrand.value = brand.update(S, dt, OWN_NAME.has(A.key)) * (1 - stingA);
+  fx.final.uniforms.tBrand.value = brand.tex;
   cu.uTextScale.value = 1 + S.beat * 0.05 + S.drop * 0.1;
   if (lines[0]) cu.uTextCenter.value.set(lines[0].x, 1 - lines[0].y);
   // one light sweep across the letters every two bars, locked to the beat clock
@@ -407,13 +420,11 @@ function status(msg) { $('status').textContent = msg; }
 function flashUI(id) { const el = $(id); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 300); }
 const keyLabel = i => i >= 30 ? '·' : (i < 10 ? '' : i < 20 ? '⇧' : '⌥') + String((i % 10 + 1) % 10);
 
-// tabs
-document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
-  document.querySelectorAll('.tab').forEach(t => t.hidden = t.id !== 'tab_' + b.dataset.t);
-  store.set('tab', b.dataset.t);
+// the advanced sections remember whether they were open
+document.querySelectorAll('#ui details').forEach((d, i) => {
+  d.open = !!store.get('open', {})[i];
+  d.addEventListener('toggle', () => { const o = store.get('open', {}); o[i] = d.open; store.set('open', o); });
 });
-(document.querySelector(`#tabs [data-t="${store.get('tab', 'live')}"]`) || document.querySelector('#tabs button')).click();
 
 // ---------- per-scene settings (stored in S.sc[sceneKey]; the old global value is the default) ----------
 function sceneOptions(s) {
@@ -440,20 +451,10 @@ function sceneOwn(s, o, x) {
     o({ type: 'toggle', name: 'cuts', label: 'BPM kurgu kesmeleri' }, () => S.photoCuts !== false),
     o({ type: 'seg', name: 'every', label: 'Kesme sıklığı (vuruş)', options: ['4', '8', '16', '32'], values: [4, 8, 16, 32] }, () => S.cutEvery || 8)
   ];
-  if (k === 'v_story') return [
-    o({ type: 'seg', name: 'bars', label: 'Bölüm süresi (bar)', options: ['4', '8', '16'], values: [4, 8, 16] }, () => 8),
-    o({ type: 'toggle', name: 'captions', label: 'Bölüm başlıkları' }, () => true),
-    motion(() => 1)
-  ];
-  if (k.startsWith('v_')) return [
-    motion(() => 1),
-    o({ type: 'range', name: 'expo', label: 'Parlaklık', min: 0.5, max: 1.6, fmt: x }, () => 1),
-    o({ type: 'seg', name: 'speed', label: 'Oynatma hızı', options: ['0.5×', '0.75×', '1×', '1.25×'], values: [0.5, 0.75, 1, 1.25] }, () => 1)
-  ];
   if (k === 'p_iced') return [o({ type: 'seg', name: 'variant', label: 'Çekim', options: ['Yakın plan', 'Portre', 'Kolye'], values: [0, 1, 2] }, () => S.icedVariant || 0), ...photo];
   if (k.startsWith('p_')) return photo;
   if (k === 'bust') return [o({ type: 'seg', name: 'fin', label: 'Yüzey', options: BUST_FIN }, () => S.bustFin || 0)];
-  if (k === 'iron') return [
+  if (k === 'iron' || k === 'foundry') return [
     motion(() => 1),
     o({ type: 'range', name: 'heat', label: 'Erimiş damarların ısısı', min: 0, max: 2, fmt: x }, () => 1),
     o({ type: 'toggle', name: 'beams', label: 'Işık huzmeleri' }, () => true),
@@ -630,9 +631,16 @@ const GROUPS = {
     { type: 'toggle', key: 'sting', label: 'Drop\'ta krom logo animasyonu (O ile elle)' }
   ],
   g_auto: [
-    { type: 'seg', key: 'auto', label: 'Döngü / otomatik geçiş <kbd>␣</kbd>', options: ['Kapalı', 'Sıralı', 'Karışık', 'Director'], values: ['off', 'seq', 'timed', 'director'] },
+    { type: 'seg', key: 'auto', label: 'Otomatik sahne geçişi <kbd>␣</kbd>', options: ['Kapalı', 'Sırayla', 'Karışık', 'Müziğe göre'], values: ['off', 'seq', 'timed', 'director'] }
+  ],
+  g_autoAdv: [
     { type: 'seg', key: 'autoEvery', label: 'Kaç vuruşta bir', options: ['8', '16', '32', '64', '128'], values: [8, 16, 32, 64, 128] },
     { type: 'seg', key: 'loopTrans', label: 'Sahneler arası geçiş', options: ['Sahneye göre', 'Rastgele', 'Sırayla hepsi'], values: ['scene', 'random', 'cycle'] }
+  ],
+  g_brand: [
+    { type: 'toggle', key: 'brand', label: 'İsim animasyonları' },
+    { type: 'range', key: 'brandGap', label: 'Aradaki boşluk', min: 1, max: 20, step: 0.5, fmt: v => Math.round(v) + ' sn' },
+    { type: 'range', key: 'brandSize', label: 'Büyüklük', min: 0, max: 1, fmt: pct }
   ],
   g_audio: [
     { type: 'range', key: 'beatSens', label: 'Vuruş eşiği (düşük = daha hassas)', min: 1.05, max: 1.8, fmt: mul }
@@ -798,8 +806,11 @@ $('bpmUpF').onclick = () => nudgeBpm(0.1);
 $('bpmHalf').onclick = () => nudgeBpm(-S.bpm / 2);
 $('bpmDouble').onclick = () => nudgeBpm(S.bpm);
 $('downBtn').onclick = () => clock.downbeat();
+$('bpmIn').value = S.bpm.toFixed(1);
 $('bpmIn').onchange = e => { const v = parseFloat(e.target.value); if (v >= 50 && v <= 220) { S.bpm = v; save(); } syncAll(); };
 $('dropBtn').onclick = doDrop;
+function showBrand() { if (!S.brand) { S.brand = true; save(); refreshUI(); } brand.start(S, OWN_NAME.has(scenes[cur].key)); }
+$('brandNow').onclick = showBrand;
 $('lockBtn').onclick = () => { S.lock = !S.lock; save(); refreshUI(); };
 $('recBtn').onclick = toggleRec;
 $('midiBtn').onclick = connectMidi;
@@ -861,6 +872,7 @@ addEventListener('keydown', e => {
   else if (k === 'x') S.rgbAmt = S.rgbAmt ? 0 : 1;
   else if (k === 'a') S.lensStreak = S.lensStreak ? 0 : DEFAULTS.lensStreak;
   else if (k === 'o') sting.fire(S);
+  else if (k === 'p') showBrand();
   else if (k === 'n') S.textMode = (S.textMode + 1) % 4;
   else if (k === 'c') { const ks = Object.keys(PALETTES); const n = ks[(ks.indexOf(S.palette) + 1) % ks.length]; Object.assign(S, { palette: n, c1: PALETTES[n][1], c2: PALETTES[n][2] }); }
   else if (k === 'r') toggleRec();
@@ -887,4 +899,4 @@ syncAll();
 fillDevices();
 loading.classList.add('done');
 requestAnimationFrame(frame);
-window.__odv = { S, scenes, setScene, doDrop, sting, fx, renderer, setMix: v => { mix = v; }, ctxPersp: ctx.chromePersp, transType: () => transType, get cur() { return cur; }, get prev() { return prev; } };
+window.__odv = { S, scenes, setScene, doDrop, sting, brand, fx, renderer, setMix: v => { mix = v; }, ctxPersp: ctx.chromePersp, transType: () => transType, get cur() { return cur; }, get prev() { return prev; } };

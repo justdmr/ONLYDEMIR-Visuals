@@ -191,11 +191,12 @@ const FinalShader = {
     tDiffuse: { value: null }, uTime: { value: 0 }, uBeat: { value: 0 }, uGlitch: { value: 0 }, uRGB: { value: 1 },
     uGrain: { value: 1 }, uFade: { value: 1 }, uStrobe: { value: 0 }, uInvert: { value: 0 }, uMaster: { value: 1 },
     uHue: { value: 0 }, uSat: { value: 1 }, uContrast: { value: 1 }, uVignette: { value: 1 }, uScan: { value: 0 }, uTone: { value: 1 }, uExposure: { value: 1 },
-    uRes: { value: new THREE.Vector2(1, 1) }
+    uRes: { value: new THREE.Vector2(1, 1) }, tBrand: { value: null }, uBrand: { value: 0 }
   },
   vertexShader: VERT,
   fragmentShader: `
-uniform sampler2D tDiffuse;
+uniform sampler2D tDiffuse, tBrand;
+uniform float uBrand;
 uniform float uTime, uBeat, uGlitch, uRGB, uGrain, uFade, uStrobe, uInvert, uMaster, uHue, uSat, uContrast, uVignette, uScan, uTone, uExposure;
 // ACES filmic (Narkowicz fit)
 vec3 aces(vec3 x){ return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0); }
@@ -232,6 +233,14 @@ void main(){
   c=mix(c,vec3(1.0),uStrobe);
   c=toSRGB(clamp(c,0.0,1.0));
   c=clamp((c-0.5)*uContrast+0.5,0.0,1.0);
+  if(uBrand>0.0){
+    // ONLYDEMIR brand layer (brand.js), laid over the graded image like a title; a faint drop shadow keeps it readable
+    vec4 bt=texture2D(tBrand,vUv);
+    float sh=texture2D(tBrand,vUv+vec2(-0.0012,0.002)).a;
+    float k=uBrand*uMaster*uFade;
+    c*=1.0-sh*0.3*k;
+    c=mix(c,bt.rgb,bt.a*k);
+  }
   c*=1.0-uScan*0.25*(0.5+0.5*sin(gl_FragCoord.y*3.14159));
   c+=(hash(uv*uRes+fract(uTime*7.0)*100.0)-0.5)*0.06*uGrain;
   gl_FragColor=vec4(c,1.0);
