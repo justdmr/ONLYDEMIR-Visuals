@@ -2,12 +2,12 @@
 
 Live, audio-reactive stage visuals for the DJ **ONLYDEMIR** (first gig theme: 29 Ekim / Cumhuriyet 103). Runs in Chrome from a local web server; projected fullscreen on stage.
 
-## Working with the user
-- **Speak Turkish.** The user is the DJ; non-technical about code, very demanding about looks.
-- Everything must look **professional and photoreal** ("gerçekmiş gibi", 4K). Primitive/procedural 3D people, cartoon props or effects that look pasted-on were rejected as amateur. Prefer real assets (CC0 HDRIs/models, AI photoreal stills + depth parallax).
-- **Be proactive**: each round, add new, different high-end ideas on your own; the user dislikes having to repeat requests.
-- The user has granted broad permission to research, install tools and iterate.
-- Respect their saved settings in the app (e.g. they chose the MIDI Clock tempo source) — don't overwrite `localStorage` settings while testing without restoring them.
+## Working on this project
+- **Communicate in Turkish.**
+- Quality bar: everything must look **professional and photoreal** (4K, "gerçekmiş gibi"). Primitive/procedural 3D people, cartoon props or effects that look pasted-on don't meet it. Prefer real assets (CC0 HDRIs/models, AI photoreal stills + depth parallax).
+- **Be proactive**: each round, add new, different high-end ideas without waiting to be asked.
+- Research, installing tools and iterating are all welcome.
+- Respect the saved in-app settings (e.g. the MIDI Clock tempo source) — don't overwrite `localStorage` settings while testing without restoring them.
 
 ## Run it
 ```
