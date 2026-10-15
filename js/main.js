@@ -13,6 +13,7 @@ import { EarthScene, IcedScene, BlackHoleScene, NeonScene, VinylScene, BalloonSc
 import { BeatClock, CLOCK_MODES } from './clock.js';
 import { CityScene, BustScene, TVWallScene, BUST_FIN } from './scenes/real.js';
 import { PhotoScene, PHOTO_DEFS } from './scenes/photo.js';
+import { Sting } from './sting.js';
 
 // ---------- settings ----------
 const store = {
@@ -42,7 +43,7 @@ const DEFAULTS = {
   scene: 0, name: 'ONLYDEMIR', msgs: DEFAULT_MSGS, textMode: 0, msgEvery: 8, font: 0, textSize: 0.7, textPlace: 0, corner: false, textGlow: 0.25,
   auto: 'director', autoEvery: 32, lock: false, off: ['tunnel', 'fireworks', 'led', 'scope', 'rain', 'synth', 'lasers'], palette: 'bayrak', c1: '#e30a17', c2: '#ffffff', bpm: 128,
   speed: 1, react: 1, beatSens: 1.3, bloom: 1, glitchAmt: 0.7, rgbAmt: 0.6, grain: 0.6, trails: 0, punch: 0.35, shake: 0.2, beatFlash: 0,
-  hue: 0, sat: 1, contrast: 1, vignette: 1, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, textStyle: 0, textShine: 0.6, lensStreak: 0.6, lensGhost: 0.35, lensDirt: 0.5, flareTint: 0, master: 1, quality: 1,
+  hue: 0, sat: 1, contrast: 1, vignette: 1, scan: 0, mirror: 0, eq: 0, eqSize: 1, trans: 4, transDur: 1.5, textStyle: 0, textShine: 0.6, lensStreak: 0.6, lensGhost: 0.35, lensDirt: 0.5, flareTint: 0, sting: true, master: 1, quality: 1,
   clock: 'lock', offsetMs: 0, strobeDiv: 4, fb: 0, fbZoom: 1.02, fbRot: 0.004, fbHue: 0, astro: true, bustFin: 0, env: 'studio', icedVariant: 0, photoMotion: 1, photoCuts: true, cutEvery: 8, tone: 1, exposure: 1
 };
 const CFG_KEYS = Object.keys(DEFAULTS);
@@ -82,6 +83,7 @@ try {
 }
 const fx = new Compositor(renderer);
 const text = new TextLayer();
+const sting = new Sting(ctx);
 const audio = new AudioEngine(S);
 const clock = new BeatClock(S);
 audio.on('onset', () => clock.onset());
@@ -139,6 +141,7 @@ function doDrop() {
   S.drop = 1;
   S.dropCount++;
   S.msgFlash = 1;
+  if (S.sting) sting.fire(S);
   if (!S.lock && S.auto !== 'off') setScene(pick(['high']), 0.3);
   flashUI('dropBtn');
 }
@@ -171,6 +174,7 @@ function resize() {
   text.setSize(w * pr, h * pr);
   ctx.U.uRes.value.set(w * pr, h * pr);
   scenes.forEach(s => s.resize(w * pr, h * pr));
+  sting.resize(w * pr, h * pr);
 }
 
 // ---------- loop ----------
@@ -203,6 +207,7 @@ function frame(now) {
   A.update(S, T, sdt);
   if (B) B.update(S, T, sdt);
 
+  const stingA = sting.update(S, dt);
   // text
   const lines = textLines(A);
   const font = FONTS[S.font] || FONTS[0];
@@ -210,7 +215,8 @@ function frame(now) {
   const cu = fx.compose.uniforms;
   const onlyBeat = S.textMode === 2 && lines.length === 1 + (S.corner ? 1 : 0);
   cu.tText.value = text.tex;
-  cu.uTextAlpha.value = (lines.length ? (onlyBeat ? Math.pow(Math.min(1, S.beat), 1.5) : 0.92 + S.beat * 0.08) : 0) * Math.min(1, mix * 1.5);
+  cu.uTextAlpha.value = (lines.length ? (onlyBeat ? Math.pow(Math.min(1, S.beat), 1.5) : 0.92 + S.beat * 0.08) : 0) * Math.min(1, mix * 1.5) * (1 - stingA);
+  cu.uSting.value = stingA; cu.uStingDim.value = stingA * 0.72;
   cu.uTextScale.value = 1 + S.beat * 0.05 + S.drop * 0.1;
   if (lines[0]) cu.uTextCenter.value.set(lines[0].x, 1 - lines[0].y);
   // one light sweep across the letters every two bars, locked to the beat clock
@@ -235,7 +241,8 @@ function frame(now) {
   fx.feedback.uniforms.uRot.value = S.fbRot; fx.feedback.uniforms.uHue.value = S.fbHue;
   fx.trails.enabled = S.trails > 0.01;
   fx.trails.uniforms.damp.value = S.trails;
-  fx.bloom.strength = (0.25 + S.beat * 0.25 + S.drop * 0.7) * S.bloom;
+  // the drop logo stays crisp: bloom backs off while it is on screen
+  fx.bloom.strength = (0.25 + S.beat * 0.25 + S.drop * 0.7) * S.bloom * (1 - stingA * 0.7);
   const lu = fx.lens.uniforms, lensKick = 1 + Math.min(1, S.beat) * 0.6 + S.drop * 1.5;
   fx.lens.enabled = S.lensStreak + S.lensGhost + S.lensDirt > 0.01;
   lu.uStreak.value = S.lensStreak * lensKick; lu.uGhost.value = S.lensGhost * (1 + S.drop); lu.uDirt.value = S.lensDirt;
@@ -252,7 +259,7 @@ function frame(now) {
   fu.uTone.value = S.tone; fu.uExposure.value = S.exposure;
   fu.uStrobe.value = Math.max(S.strobe && (S.clockPhase * S.strobeDiv) % 1 < 0.5 ? 1 : 0, Math.pow(S.drop, 6) * 0.9, Math.pow(Math.min(1, S.beat), 4) * S.beatFlash * 0.7);
 
-  fx.render(A, B, dt);
+  fx.render(A, B, dt, sting.active ? sting : null);
   updateMeters();
 }
 
@@ -307,7 +314,7 @@ idb.get('img').then(b => b && loadImage(b, false)).catch(() => {});
 
 // ---------- MIDI: pads from 36 = scenes, then drop, strobe, blackout, mirror, trails, glitch, lock; CC1/CC7 master, CC2 speed, CC3 bloom, CC4 hue ----------
 let midiLast = '';
-const MIDI_FX = ['drop', 'strobe', 'blackout', 'ayna', 'iz', 'glitch', 'kilit'];
+const MIDI_FX = ['drop', 'strobe', 'blackout', 'ayna', 'iz', 'glitch', 'kilit', 'logo'];
 // MIDI clock (0xF8) from Traktor & co. drives the beat clock in 'MIDI Clock' mode
 function onMidi(e) {
   const [st, d1, d2] = e.data;
@@ -323,6 +330,7 @@ function onMidi(e) {
     else if (f === 4) S.trails = S.trails ? 0 : 0.88;
     else if (f === 5) S.glitchHold = true;
     else if (f === 6) S.lock = !S.lock;
+    else if (f === 7) sting.fire(S);
     else setScene(cur + 1);
     midiLast = `Nota ${d1}`;
   } else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) {
@@ -488,7 +496,8 @@ const GROUPS = {
     { type: 'toggle', key: 'photoCuts', label: 'Fotoğraf sahneleri · BPM kurgu kesmeleri' },
     { type: 'seg', key: 'cutEvery', label: 'Kesme sıklığı (vuruş)', options: ['4', '8', '16', '32'], values: [4, 8, 16, 32] },
     { type: 'seg', key: 'bustFin', label: 'Mermer Büst · yüzey', options: BUST_FIN },
-    { type: 'toggle', key: 'astro', label: 'Dünya Yörüngesi · astronot' }
+    { type: 'toggle', key: 'astro', label: 'Dünya Yörüngesi · astronot' },
+    { type: 'toggle', key: 'sting', label: 'Drop\'ta krom logo animasyonu (O ile elle)' }
   ],
   g_trans: [
     { type: 'seg', key: 'trans', label: 'Geçiş tipi <kbd>W</kbd>', options: TRANSITIONS },
@@ -687,6 +696,7 @@ addEventListener('keydown', e => {
   else if (k === 'j') S.fb = S.fb ? 0 : 0.82;
   else if (k === 'x') S.rgbAmt = S.rgbAmt ? 0 : 1;
   else if (k === 'a') S.lensStreak = S.lensStreak ? 0 : DEFAULTS.lensStreak;
+  else if (k === 'o') sting.fire(S);
   else if (k === 'n') S.textMode = (S.textMode + 1) % 4;
   else if (k === 'c') { const ks = Object.keys(PALETTES); const n = ks[(ks.indexOf(S.palette) + 1) % ks.length]; Object.assign(S, { palette: n, c1: PALETTES[n][1], c2: PALETTES[n][2] }); }
   else if (k === 'r') toggleRec();
@@ -713,4 +723,4 @@ syncAll();
 fillDevices();
 loading.classList.add('done');
 requestAnimationFrame(frame);
-window.__odv = { S, scenes, setScene, doDrop, get cur() { return cur; }, get prev() { return prev; } };
+window.__odv = { S, scenes, setScene, doDrop, sting, get cur() { return cur; }, get prev() { return prev; } };

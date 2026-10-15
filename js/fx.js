@@ -20,12 +20,12 @@ const ComposeShader = {
     uPunch: { value: 0 }, uShake: { value: new THREE.Vector2() }, uEQ: { value: 0 }, uEQSize: { value: 1 },
     uC1: { value: new THREE.Vector3(0.89, 0.04, 0.09) }, uC2: { value: new THREE.Vector3(1, 1, 1) }, uBass: { value: 0 },
     uTextAlpha: { value: 0 }, uTextScale: { value: 1 }, uTextCenter: { value: new THREE.Vector2(0.5, 0.5) }, uTextGlitch: { value: 0 },
-    uTextSweep: { value: -1 }, uTextShine: { value: 0 }
+    uTextSweep: { value: -1 }, uTextShine: { value: 0 }, tSting: { value: null }, uSting: { value: 0 }, uStingDim: { value: 0 }
   },
   vertexShader: VERT,
   fragmentShader: `
-uniform sampler2D tA, tB, tText, uSpec, uWave;
-uniform float uMix, uTrans, uTime, uMirror, uAspect, uPunch, uEQ, uEQSize, uBass, uTextAlpha, uTextScale, uTextGlitch, uTextSweep, uTextShine;
+uniform sampler2D tA, tB, tText, uSpec, uWave, tSting;
+uniform float uMix, uTrans, uTime, uMirror, uAspect, uPunch, uEQ, uEQSize, uBass, uTextAlpha, uTextScale, uTextGlitch, uTextSweep, uTextShine, uSting, uStingDim;
 uniform vec2 uShake, uTextCenter;
 uniform vec3 uC1, uC2;
 varying vec2 vUv;
@@ -119,6 +119,12 @@ void main(){
     }
   }
   if(uEQ>0.5) c=eq(c);
+  if(uSting>0.0){
+    // drop logo: premultiplied colour + coverage alpha; the scene dims behind it
+    vec4 s=texture2D(tSting,(vUv-0.5)/(1.0+uPunch*0.5)+0.5);
+    c*=1.0-uStingDim;
+    c=mix(c,c*(1.0-s.a)+s.rgb,uSting);
+  }
   vec2 tuv=(vUv-uTextCenter)/uTextScale+uTextCenter;
   float row=floor(tuv.y*28.0);
   float tear=uTextGlitch*step(0.55,hash(vec2(row,floor(uTime*18.0))));
@@ -374,6 +380,7 @@ export class Compositor {
     const opts = { type: THREE.HalfFloatType, samples: 4 };
     this.rtA = new THREE.WebGLRenderTarget(1, 1, opts);
     this.rtB = new THREE.WebGLRenderTarget(1, 1, opts);
+    this.rtS = new THREE.WebGLRenderTarget(1, 1, opts);
     this.composer = new EffectComposer(renderer);
     this.compose = new ShaderPass(ComposeShader);
     this.feedback = new FeedbackPass();
@@ -388,15 +395,21 @@ export class Compositor {
   setSize(w, h, pr) {
     this.rtA.setSize(w * pr, h * pr);
     this.rtB.setSize(w * pr, h * pr);
+    this.rtS.setSize(w * pr, h * pr);
     this.composer.setPixelRatio(pr);
     this.composer.setSize(w, h);
     this.compose.uniforms.uAspect.value = w / h;
     this.final.uniforms.uRes.value.set(w * pr, h * pr);
   }
-  render(a, b, dt) {
+  render(a, b, dt, sting) {
     const r = this.renderer;
     r.setRenderTarget(this.rtA); r.clear(); a.render(r);
     if (b) { r.setRenderTarget(this.rtB); r.clear(); b.render(r); }
+    if (sting) {
+      const ca = r.getClearAlpha();
+      r.setRenderTarget(this.rtS); r.setClearAlpha(0); r.clear(); sting.render(r); r.setClearAlpha(ca);
+      this.compose.uniforms.tSting.value = this.rtS.texture;
+    }
     r.setRenderTarget(null);
     this.compose.uniforms.tA.value = this.rtA.texture;
     this.compose.uniforms.tB.value = this.rtB.texture;
