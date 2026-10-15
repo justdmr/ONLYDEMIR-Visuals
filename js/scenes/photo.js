@@ -18,7 +18,8 @@ export const PHOTO_DEFS = [
   // monumental "DEMİR" concepts (prompts in tools/retry_gen.sh); each appears once its image + depth map exist
   { key: 'p_monolith', name: 'Demir Anıt', energy: 'low', variants: ['monolith'], depth: 2.8, dust: true, flare: true },
   { key: 'p_angel', name: 'Demir Melek', energy: 'mid', variants: ['angel'], depth: 2.6, dust: true, sweep: true },
-  { key: 'p_rooftop', name: 'Çatı Partisi', energy: 'high', variants: ['rooftop'], depth: 2.4, dust: true, strobe: true, glints: { rect: [0, 0, 1, 0.6], n: 40, thresh: 0.995 } },
+  // gain < 1 keeps the white LED sign from blooming out so ONLYDEMIR stays readable
+  { key: 'p_rooftop', name: 'Çatı Partisi', energy: 'high', variants: ['rooftop'], depth: 2.4, dust: true, gain: 0.72, glints: { rect: [0, 0, 1, 0.6], n: 40, thresh: 0.995 } },
   { key: 'p_anitkabir', name: 'Anıtkabir · 29 Ekim', cat: 'tr', energy: 'low', variants: ['anitkabir'], depth: 2.2, fireworks: true }
 ];
 
@@ -108,7 +109,7 @@ export class PhotoScene {
     this.camera = new THREE.PerspectiveCamera(30, 16 / 9, 0.1, 200);
     this.U = {
       tImg: { value: null }, tDepth: { value: null }, uDepth: { value: def.depth }, uTime: { value: 0 }, uBeat: { value: 0 }, uDrop: { value: 0 },
-      uTint: { value: new THREE.Color() }, uSweep: { value: def.sweep ? 1 : 0 }, uRim: { value: def.rim ? 1 : 0 }, uStrobe: { value: 0 }
+      uTint: { value: new THREE.Color() }, uSweep: { value: def.sweep ? 1 : 0 }, uRim: { value: def.rim ? 1 : 0 }, uStrobe: { value: 0 }, uGain: { value: def.gain ?? 1 }
     };
     this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 384, 218), new THREE.ShaderMaterial({
       uniforms: this.U,
@@ -122,9 +123,9 @@ void main(){
   gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);
 }`,
       fragmentShader: `
-uniform sampler2D tImg; uniform float uTime, uBeat, uDrop, uSweep, uRim, uStrobe; uniform vec3 uTint; varying vec2 vUv; varying float vD;
+uniform sampler2D tImg; uniform float uTime, uBeat, uDrop, uSweep, uRim, uStrobe, uGain; uniform vec3 uTint; varying vec2 vUv; varying float vD;
 void main(){
-  vec3 c=texture2D(tImg,vUv).rgb;
+  vec3 c=texture2D(tImg,vUv).rgb*uGain;
   float l=dot(c,vec3(0.2126,0.7152,0.0722));
   // light sweep that rides over the nearest surfaces
   float band=exp(-pow((vUv.x*0.75+vUv.y*0.25-fract(uTime*0.055)*1.9+0.45)*7.0,2.0));
