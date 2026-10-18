@@ -133,25 +133,50 @@
 
   /* ---------- Dates: the tour-poster list ---------- */
   .dates { list-style: none; margin: 0; padding: 0; }
-  .show {
+  .show { border-bottom: 1px solid var(--rule); padding-bottom: clamp(28px, 4vw, 56px); }
+  .show + .show { margin-top: clamp(28px, 4vw, 56px); }
+  .row {
     position: relative;
     display: grid;
     grid-template-columns: minmax(7ch, 1.2fr) minmax(0, 6fr) minmax(0, 3fr) minmax(0, 1.8fr);
     column-gap: clamp(12px, 1.6vw, 24px);
     align-items: baseline;
     padding-block: clamp(18px, 2.4vw, 30px);
-    border-bottom: 1px solid var(--rule);
-    transition: background-color .35s ease, color .35s ease;
+    transition: color .35s ease;
   }
-  .show::before {
+  .row::before {
     content: ""; position: absolute; inset: 0 calc(-1 * clamp(8px, 1.2vw, 16px));
     background: var(--blue); z-index: -1;
     transform: scaleY(0); transform-origin: bottom;
     transition: transform .45s cubic-bezier(.2,.7,.1,1);
   }
-  .show:hover { color: var(--paper); }
-  .show:hover::before { transform: scaleY(1); }
+  .show:hover .row { color: var(--paper); }
+  .show:hover .row::before { transform: scaleY(1); }
   .dates { position: relative; z-index: 0; }
+
+  /* Concert photos: blue duotone at rest, full colour on hover (touch screens get colour) */
+  .shot { margin: 0; display: grid; gap: 10px; }
+  .shot-frame {
+    position: relative; overflow: hidden;
+    aspect-ratio: 21 / 9; max-width: 100%;
+    background: var(--blue);
+  }
+  .shot-frame img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover;
+    transform: scale(1.02);
+    transition: transform 1.2s cubic-bezier(.2,.7,.1,1), filter .6s ease, opacity .6s ease;
+  }
+  @media (hover: hover) {
+    .shot-frame img { filter: grayscale(1) contrast(1.2) brightness(1.05); mix-blend-mode: multiply; }
+    .show:hover .shot-frame img { filter: none; mix-blend-mode: normal; transform: scale(1.05); }
+  }
+  .shot figcaption {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 24px;
+    font-size: 13px; color: var(--grey);
+  }
+  .shot figcaption a { text-underline-offset: 3px; }
+  @media (max-width: 700px) { .shot-frame { aspect-ratio: 4 / 3; } }
 
   .show time {
     font-weight: 600; font-stretch: 75%;
@@ -187,7 +212,7 @@
   .dates-note { margin: 18px 0 0; max-width: 60ch; }
 
   @media (max-width: 900px) {
-    .show { grid-template-columns: minmax(0, 1fr) auto; row-gap: 10px; }
+    .row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 10px; }
     .show time { grid-column: 1; grid-row: 1; }
     .status { grid-column: 2; grid-row: 1; }
     .artist { grid-column: 1 / -1; grid-row: 2; white-space: normal; }
@@ -289,7 +314,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .show, .show::before, .artist { transition: none; }
+    .row, .row::before, .artist, .shot-frame img { transition: none; }
   }
 </style>
 </head>
@@ -326,16 +351,52 @@
     </div>
     <ol class="dates">
       <li class="show">
-        <time datetime="2026-05-30">30.05.26</time>
-        <p class="artist">Kanye West</p>
-        <p class="venue"><b>Atatürk Olimpiyat Stadyumu</b><span data-i18n="k_title">YE Live in Istanbul</span></p>
-        <p class="status" data-i18n="k_status">First concert in Turkey</p>
+        <div class="row">
+          <time datetime="2026-05-30">30.05.26</time>
+          <p class="artist">Kanye West</p>
+          <p class="venue"><b>Atatürk Olimpiyat Stadyumu</b><span data-i18n="k_title">YE Live in Istanbul</span></p>
+          <p class="status" data-i18n="k_status">First concert in Turkey</p>
+        </div>
+        <figure class="shot">
+          <div class="shot-frame">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Ye_%28f.k.a._Kanye_West%29_performing_in_Eagle_Stadium_%28Tirana%2C_Albania%29_on_11_July_2026_%28cropped%29.jpg/1280px-Ye_%28f.k.a._Kanye_West%29_performing_in_Eagle_Stadium_%28Tirana%2C_Albania%29_on_11_July_2026_%28cropped%29.jpg"
+              srcset="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Ye_%28f.k.a._Kanye_West%29_performing_in_Eagle_Stadium_%28Tirana%2C_Albania%29_on_11_July_2026_%28cropped%29.jpg/960px-Ye_%28f.k.a._Kanye_West%29_performing_in_Eagle_Stadium_%28Tirana%2C_Albania%29_on_11_July_2026_%28cropped%29.jpg 960w,
+                      https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Ye_%28f.k.a._Kanye_West%29_performing_in_Eagle_Stadium_%28Tirana%2C_Albania%29_on_11_July_2026_%28cropped%29.jpg/1280px-Ye_%28f.k.a._Kanye_West%29_performing_in_Eagle_Stadium_%28Tirana%2C_Albania%29_on_11_July_2026_%28cropped%29.jpg 1280w,
+                      https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Ye_%28f.k.a._Kanye_West%29_performing_in_Eagle_Stadium_%28Tirana%2C_Albania%29_on_11_July_2026_%28cropped%29.jpg/1920px-Ye_%28f.k.a._Kanye_West%29_performing_in_Eagle_Stadium_%28Tirana%2C_Albania%29_on_11_July_2026_%28cropped%29.jpg 1920w"
+              sizes="(min-width: 1440px) 1376px, 100vw"
+              width="6557" height="3685" loading="lazy" decoding="async"
+              alt="Ye (Kanye West) on stage at Eagle Stadium, Tirana, during the 2026 Ye Live tour">
+          </div>
+          <figcaption>
+            <span data-i18n="k_photo">Ye Live tour 2026 · Eagle Stadium, Tirana · 11.07.26</span>
+            <span><span data-i18n="photo">Photo</span>: <a href="https://commons.wikimedia.org/wiki/File:Ye_(f.k.a._Kanye_West)_performing_in_Eagle_Stadium_(Tirana,_Albania)_on_11_July_2026_(cropped).jpg" target="_blank" rel="noopener">Matete Plays</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a></span>
+          </figcaption>
+        </figure>
       </li>
       <li class="show">
-        <time datetime="2026-06-06">06.06.26</time>
-        <p class="artist">Max Korzh</p>
-        <p class="venue"><b>Beşiktaş Tüpraş Stadyumu</b><span data-i18n="m_title">Stadium concert</span></p>
-        <p class="status"><span class="tag" data-i18n="sticker">Sold out</span></p>
+        <div class="row">
+          <time datetime="2026-06-06">06.06.26</time>
+          <p class="artist">Max Korzh</p>
+          <p class="venue"><b>Beşiktaş Tüpraş Stadyumu</b><span data-i18n="m_title">Stadium concert</span></p>
+          <p class="status"><span class="tag" data-i18n="sticker">Sold out</span></p>
+        </div>
+        <figure class="shot">
+          <div class="shot-frame">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Max-Korzh-2018-11-09-0010.jpg/1280px-Max-Korzh-2018-11-09-0010.jpg"
+              srcset="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Max-Korzh-2018-11-09-0010.jpg/960px-Max-Korzh-2018-11-09-0010.jpg 960w,
+                      https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Max-Korzh-2018-11-09-0010.jpg/1280px-Max-Korzh-2018-11-09-0010.jpg 1280w,
+                      https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Max-Korzh-2018-11-09-0010.jpg/1920px-Max-Korzh-2018-11-09-0010.jpg 1920w"
+              sizes="(min-width: 1440px) 1376px, 100vw"
+              width="3871" height="2583" loading="lazy" decoding="async"
+              alt="Max Korzh performing on stage in Warsaw" style="object-position: 50% 30%">
+          </div>
+          <figcaption>
+            <span data-i18n="m_photo">Max Korzh live · Warsaw · 09.11.18</span>
+            <span><span data-i18n="photo">Photo</span>: <a href="https://commons.wikimedia.org/wiki/File:Max-Korzh-2018-11-09-0010.jpg" target="_blank" rel="noopener">Paweł Brześciński</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a></span>
+          </figcaption>
+        </figure>
       </li>
     </ol>
     <p class="dates-note small muted" data-i18n="dates_note">Palm G Event was part of the organization team for both concerts.</p>
@@ -435,6 +496,7 @@
       work_h: "Selected work",
       k_title: "YE Live in Istanbul", k_status: "First concert in Turkey",
       m_title: "Stadium concert", sticker: "Sold out",
+      photo: "Photo", k_photo: "Ye Live tour 2026 · Eagle Stadium, Tirana · 11.07.26", m_photo: "Max Korzh live · Warsaw · 09.11.18",
       dates_note: "Palm G Event was part of the organization team for both concerts.",
       about_h: "About", about_label: "Palm G Event",
       about: "An event organization company based in Istanbul. We work on public, ticketed concerts in arenas and stadiums.",
@@ -468,6 +530,7 @@
       work_h: "Referanslar",
       k_title: "YE Live in Istanbul", k_status: "Türkiye'deki ilk konseri",
       m_title: "Stadyum konseri", sticker: "Kapalı gişe",
+      photo: "Fotoğraf", k_photo: "Ye Live turnesi 2026 · Eagle Stadium, Tiran · 11.07.26", m_photo: "Max Korzh konseri · Varşova · 09.11.18",
       dates_note: "Palm G Event, iki konserde de organizasyon ekibinde yer aldı.",
       about_h: "Hakkımızda", about_label: "Palm G Event",
       about: "İstanbul merkezli bir etkinlik organizasyon şirketi. Arena ve stadyumlarda biletli, halka açık konserler üzerinde çalışıyoruz.",
