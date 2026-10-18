@@ -175,10 +175,18 @@
   @media (hover: hover) {
     .show:hover .shot-frame img { filter: grayscale(1) contrast(1.3) brightness(1); transform: scale(1.05); }
   }
+  .shot-pair { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); gap: 10px; }
+  .shot-pair .shot-frame { aspect-ratio: auto; }
+  .shot-pair .shot-frame.tall { aspect-ratio: 9 / 16; }
+  .shot-frame video {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; display: block;
+    filter: grayscale(1) contrast(1.1);
+  }
   .shot-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
   .shot-row .shot-frame { aspect-ratio: 16 / 9; }
   .credit a { text-underline-offset: 3px; }
-  @media (max-width: 700px) { .shot-frame { aspect-ratio: 4 / 3; } .shot-row { gap: 6px; } .shot-row .shot-frame { aspect-ratio: 1 / 1; } }
+  @media (max-width: 700px) { .shot-frame { aspect-ratio: 4 / 3; } .shot-row { gap: 6px; } .shot-row .shot-frame { aspect-ratio: 1 / 1; } .shot-pair { grid-template-columns: 1fr 1fr; gap: 6px; } }
 
   .show time {
     font-weight: 600; font-stretch: 75%;
@@ -380,13 +388,19 @@
           <p class="status"><span class="tag" data-i18n="sticker">Sold out</span></p>
         </div>
         <figure class="shot">
-          <div class="shot-frame">
-            <img
+          <div class="shot-pair">
+            <div class="shot-frame">
+              <img
               src="img/korzh-1920.jpg"
               srcset="img/korzh-960.jpg 960w, img/korzh-1920.jpg 1920w"
               sizes="(min-width: 1440px) 1376px, 100vw"
               width="1920" height="1281" loading="lazy" decoding="async"
               alt="Max Korzh performing on stage" style="object-position: 60% 45%">
+            </div>
+            <div class="shot-frame tall">
+              <video src="img/korzh-crowd.mp4" poster="img/korzh-crowd.jpg" autoplay muted loop playsinline preload="metadata"
+                width="720" height="1280" aria-label="The crowd at Beşiktaş Tüpraş Stadium during the Max Korzh concert"></video>
+            </div>
           </div>
         </figure>
       </li>
@@ -565,6 +579,11 @@
     b.addEventListener("click", function () { apply(b.getAttribute("data-lang")); });
   });
   /* The page always opens in English; TR is one click away */
+
+  /* Background video: stop it for visitors who prefer reduced motion */
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.querySelectorAll("video[autoplay]").forEach(function (v) { v.removeAttribute("autoplay"); v.pause(); });
+  }
 
   /* Istanbul local time, for agents in other time zones */
   var clock = document.getElementById("clock");
