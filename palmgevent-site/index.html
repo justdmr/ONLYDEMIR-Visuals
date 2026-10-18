@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Palm G Event – concert organization in Istanbul. Part of the organization of Kanye West and Max Korzh stadium concerts in 2026.">
-<meta name="theme-color" content="#0A0A0B">
+<meta name="theme-color" content="#2233E6">
 <meta property="og:title" content="Palm G Event">
 <meta property="og:description" content="Concert organization in Istanbul.">
 <meta property="og:type" content="website">
@@ -20,646 +20,395 @@
 <title>Palm G Event</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;900&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
 <style>
-  /* Layout: a stadium at night. Full-bleed dark bands, light rigs sweeping the hero,
-     work shown as oversized ticket stubs, numbers set like venue signage. */
+  /* One family (Archivo, width axis 62–125), three colors, a 12-column grid.
+     The page reads like a tour poster: a blue field, then the date list. */
   :root {
-    --night: #0A0A0B;        /* page ground: stadium at night */
-    --iron: #141417;         /* raised surfaces */
-    --steel: #26262B;        /* rules, borders */
-    --chalk: #F2EFEA;        /* primary type */
-    --ash: #9A968F;          /* secondary type */
-    --ember: #FF5A1F;        /* stage-light accent */
-    --ember-deep: #C2260C;
-    --halogen: #FFE3B8;      /* light-beam core */
-
-    --display: "Big Shoulders Display", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
-    --sans: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
-    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-
-    --gutter-l: max(16px, env(safe-area-inset-left, 0px));
-    --gutter-r: max(16px, env(safe-area-inset-right, 0px));
-    color-scheme: dark;
+    --paper: #FFFFFF;
+    --ink: #0B0B0C;
+    --blue: #2233E6;
+    --grey: #6B6C72;
+    --rule: #0B0B0C;
+    --hair: #E3E3E6;
+    --font: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --side-l: max(16px, env(safe-area-inset-left, 0px));
+    --side-r: max(16px, env(safe-area-inset-right, 0px));
+    color-scheme: light;
   }
 
   *, *::before, *::after { box-sizing: border-box; }
-  html { background: var(--night); scroll-behavior: smooth; }
+  html { background: var(--paper); }
   body {
     margin: 0;
-    background: var(--night);
-    color: var(--chalk);
-    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font);
     font-size: 17px;
-    line-height: 1.55;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+    text-rendering: optimizeLegibility;
   }
   a { color: inherit; }
   img { max-width: 100%; }
   [hidden] { display: none !important; }
-  :focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
-  ::selection { background: var(--ember); color: var(--night); }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+  ::selection { background: var(--blue); color: var(--paper); }
 
   .wrap {
-    max-width: 1280px;
+    max-width: 1440px;
     margin-inline: auto;
-    padding-left: calc(var(--gutter-l) + clamp(0px, 3vw, 32px));
-    padding-right: calc(var(--gutter-r) + clamp(0px, 3vw, 32px));
+    padding-left: calc(var(--side-l) + clamp(0px, 2.2vw, 32px));
+    padding-right: calc(var(--side-r) + clamp(0px, 2.2vw, 32px));
   }
-  .label {
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--ash);
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(12px, 1.6vw, 24px);
   }
+  .small { font-size: 14px; line-height: 1.4; }
+  .muted { color: var(--grey); }
 
-  /* ---------- Header ---------- */
-  body::before {
-    content: ""; position: fixed; inset: 0 0 auto;
-    height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--night);
+  /* ---------- Blue field: header + hero ---------- */
+  .field {
+    background: var(--blue);
+    color: var(--paper);
   }
   .top {
-    position: fixed;
-    top: env(safe-area-inset-top, 0px); left: 0; right: 0;
-    z-index: 50;
-    transition: background .4s ease, border-color .4s ease;
-    border-bottom: 1px solid transparent;
-  }
-  .top.scrolled {
-    background: color-mix(in srgb, var(--night) 82%, transparent);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-bottom-color: var(--steel);
-  }
-  .top .wrap {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px 32px; padding-block: 18px;
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px 32px; flex-wrap: wrap;
+    padding-block: 20px;
+    border-bottom: 1px solid rgba(255,255,255,.35);
   }
   .logo {
-    display: inline-flex; align-items: center; gap: 10px;
-    font-family: var(--display); font-weight: 900; font-size: 24px;
-    letter-spacing: 0.02em; text-transform: uppercase; text-decoration: none;
+    font-weight: 800; font-stretch: 112%; font-size: 19px;
+    letter-spacing: -.01em; text-decoration: none;
   }
-  .logo i {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--ember);
-    box-shadow: 0 0 12px 2px var(--ember);
-    animation: pulse 2.4s ease-in-out infinite;
-  }
-  @keyframes pulse { 50% { opacity: .35; box-shadow: 0 0 4px 0 var(--ember); } }
-  .nav { display: flex; align-items: center; gap: 8px 28px; font-size: 15px; }
-  .nav a { text-decoration: none; color: var(--ash); transition: color .2s; }
-  .nav a:hover { color: var(--chalk); }
-  .lang { display: inline-flex; gap: 2px; border: 1px solid var(--steel); padding: 3px; }
+  .nav { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 26px; font-size: 15px; }
+  .nav a { text-decoration: none; }
+  .nav a:hover { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+  .lang { display: inline-flex; gap: 8px; }
   .lang button {
-    font: 600 12px/1 var(--mono); letter-spacing: .08em;
-    color: var(--ash); background: none; border: 0; padding: 6px 8px; cursor: pointer;
+    font: inherit; color: inherit; opacity: .6;
+    background: none; border: 0; padding: 0; cursor: pointer;
   }
-  .lang button[aria-pressed="true"] { color: var(--night); background: var(--chalk); }
-  @media (max-width: 640px) { .nav a { display: none; } }
+  .lang button[aria-pressed="true"] { opacity: 1; font-weight: 700; }
 
-  /* ---------- Hero ---------- */
-  .hero {
-    position: relative;
-    overflow: hidden;
-    padding-block: clamp(140px, 20vw, 220px) clamp(56px, 8vw, 96px);
-    isolation: isolate;
-  }
-  #rig {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    z-index: -1; display: block;
-  }
-  .hero::after {
-    content: ""; position: absolute; inset: auto 0 0; height: 40%; z-index: -1;
-    background: linear-gradient(to top, var(--night), transparent);
-    pointer-events: none;
-  }
-  .hero .label { display: flex; gap: 10px 22px; flex-wrap: wrap; margin-bottom: 28px; }
-  .hero .label span::before { content: "● "; color: var(--ember); }
+  .hero { padding-block: clamp(56px, 9vw, 128px) clamp(28px, 3vw, 40px); }
   h1 {
     margin: 0;
-    font-family: var(--display);
-    font-weight: 900;
-    font-size: clamp(64px, 13vw, 200px);
-    line-height: .84;
-    letter-spacing: -0.005em;
-    text-transform: uppercase;
+    font-weight: 800;
+    font-stretch: 62%;
+    font-size: clamp(64px, 14.2vw, 214px);
+    line-height: .86;
+    letter-spacing: -.025em;
     text-wrap: balance;
-    max-width: 11ch;
   }
-  h1 em {
-    font-style: normal;
-    color: transparent;
-    -webkit-text-stroke: 2px var(--chalk);
+  .hero-facts {
+    margin-top: clamp(48px, 7vw, 104px);
+    padding-top: 14px;
+    border-top: 1px solid var(--paper);
+    row-gap: 18px;
   }
-  .hero-foot {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-    gap: 28px 64px;
-    align-items: end;
-    margin-top: clamp(36px, 5vw, 64px);
-  }
-  .lead { margin: 0; max-width: 42ch; font-size: clamp(18px, 1.8vw, 22px); line-height: 1.45; color: var(--chalk); }
-  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 10px;
-    font: 600 15px/1 var(--sans); text-decoration: none;
-    padding: 16px 22px; border: 1px solid var(--chalk); color: var(--chalk);
-    background: transparent; cursor: pointer;
-    transition: background .2s, color .2s, border-color .2s;
-  }
-  .btn:hover { background: var(--chalk); color: var(--night); }
-  .btn.hot { background: var(--ember); border-color: var(--ember); color: var(--night); }
-  .btn.hot:hover { background: var(--halogen); border-color: var(--halogen); }
-  .btn svg { width: 14px; height: 14px; }
+  .hero-facts p { margin: 0; font-size: 15px; line-height: 1.4; }
+  .hero-facts .lead { grid-column: 1 / span 6; font-size: clamp(18px, 1.7vw, 22px); line-height: 1.35; max-width: 34ch; }
+  .hero-facts .f1 { grid-column: 8 / span 2; }
+  .hero-facts .f2 { grid-column: 10 / span 3; }
+  .hero-facts b { display: block; font-weight: 700; }
   @media (max-width: 760px) {
-    .hero-foot { grid-template-columns: 1fr; }
-    .cta-row { justify-content: flex-start; }
+    .hero-facts .lead { grid-column: 1 / -1; }
+    .hero-facts .f1 { grid-column: 1 / span 6; }
+    .hero-facts .f2 { grid-column: 7 / span 6; }
   }
 
-  /* ---------- Marquee ---------- */
-  .ticker {
-    border-block: 1px solid var(--steel);
-    overflow: hidden;
-    background: var(--iron);
-  }
-  .ticker-track {
-    display: flex; width: max-content;
-    animation: run 38s linear infinite;
-  }
-  .ticker-track span {
-    display: inline-flex; align-items: center; gap: 28px;
-    padding: 18px 14px;
-    font-family: var(--display); font-weight: 700; font-size: clamp(22px, 2.6vw, 34px);
-    text-transform: uppercase; letter-spacing: .02em; white-space: nowrap;
-  }
-  .ticker-track b { color: var(--ember); font-weight: 900; }
-  .ticker-track small { font: 400 13px var(--mono); letter-spacing: .1em; color: var(--ash); }
-  @keyframes run { to { transform: translateX(-50%); } }
-
-  /* ---------- Section heads ---------- */
-  section { scroll-margin-top: 80px; }
-  .band { padding-block: clamp(72px, 10vw, 140px); }
+  /* ---------- Section head ---------- */
+  section { scroll-margin-top: 16px; }
+  .sec { padding-block: clamp(64px, 9vw, 128px) 0; }
   .sec-head {
-    display: flex; align-items: baseline; justify-content: space-between;
-    gap: 16px; flex-wrap: wrap;
-    border-top: 1px solid var(--steel); padding-top: 16px;
-    margin-bottom: clamp(32px, 5vw, 56px);
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    border-top: 2px solid var(--rule); padding-top: 12px;
   }
-  .sec-head h2 {
-    margin: 0;
-    font-family: var(--display); font-weight: 900; text-transform: uppercase;
-    font-size: clamp(40px, 6vw, 84px); line-height: .9; letter-spacing: .005em;
-  }
+  .sec-head h2 { margin: 0; font-size: 17px; font-weight: 700; }
+  .sec-head span { font-size: 15px; color: var(--grey); font-variant-numeric: tabular-nums; }
 
-  /* ---------- Tickets (work) ---------- */
-  .tickets { display: grid; gap: clamp(28px, 4vw, 48px); }
-  .ticket {
-    --tilt-x: 0deg; --tilt-y: 0deg; --mx: 50%; --my: 50%;
+  /* ---------- Dates: the tour-poster list ---------- */
+  .dates { list-style: none; margin: 0; padding: 0; }
+  .show {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) clamp(150px, 20vw, 240px);
-    background: var(--t-bg);
-    color: var(--t-fg);
-    transform: perspective(1400px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
-    transition: transform .5s cubic-bezier(.2,.7,.2,1);
-    will-change: transform;
+    grid-template-columns: minmax(7ch, 1.2fr) minmax(0, 6fr) minmax(0, 3fr) minmax(0, 1.8fr);
+    column-gap: clamp(12px, 1.6vw, 24px);
+    align-items: baseline;
+    padding-block: clamp(18px, 2.4vw, 30px);
+    border-bottom: 1px solid var(--rule);
+    transition: background-color .35s ease, color .35s ease;
   }
-  .ticket::after {
-    /* light glance following the pointer */
-    content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(600px circle at var(--mx) var(--my), rgba(255,255,255,.14), transparent 40%);
-    opacity: 0; transition: opacity .3s;
+  .show::before {
+    content: ""; position: absolute; inset: 0 calc(-1 * clamp(8px, 1.2vw, 16px));
+    background: var(--blue); z-index: -1;
+    transform: scaleY(0); transform-origin: bottom;
+    transition: transform .45s cubic-bezier(.2,.7,.1,1);
   }
-  .ticket:hover::after { opacity: 1; }
-  .t-kanye { --t-bg: var(--chalk); --t-fg: var(--night); --t-acc: var(--ember-deep); }
-  .t-korzh { --t-bg: var(--ember); --t-fg: var(--night); --t-acc: var(--night); }
+  .show:hover { color: var(--paper); }
+  .show:hover::before { transform: scaleY(1); }
+  .dates { position: relative; z-index: 0; }
 
-  .t-main {
-    position: relative;
-    padding: clamp(20px, 3vw, 40px);
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    gap: 20px;
-    min-height: clamp(340px, 42vw, 520px);
-    overflow: hidden;
-    container-type: inline-size;
+  .show time {
+    font-weight: 600; font-stretch: 75%;
+    font-size: clamp(20px, 2vw, 28px);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.005em;
   }
-  .t-row {
-    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-    font: 600 12px/1.3 var(--mono); letter-spacing: .12em; text-transform: uppercase;
-  }
-  .t-name {
-    align-self: center;
+  .artist {
     margin: 0;
-    font-family: var(--display); font-weight: 900; text-transform: uppercase;
-    font-size: clamp(64px, 19cqi, 230px);
-    line-height: .8; letter-spacing: -.01em;
+    font-weight: 800;
+    font-stretch: 62%;
+    font-size: clamp(52px, 8.4vw, 132px);
+    line-height: .86;
+    letter-spacing: -.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: font-stretch .6s cubic-bezier(.2,.7,.1,1), letter-spacing .6s cubic-bezier(.2,.7,.1,1);
   }
-  .t-meta {
-    display: grid; grid-template-columns: repeat(3, minmax(0, auto)); justify-content: start;
-    gap: 6px clamp(20px, 4vw, 56px);
-    border-top: 2px solid currentColor; padding-top: 14px;
+  .show:hover .artist { font-stretch: 78%; letter-spacing: -.01em; }
+  .venue { font-size: 16px; line-height: 1.35; }
+  .venue b { display: block; font-weight: 700; }
+  .status { justify-self: end; text-align: right; font-size: 15px; line-height: 1.3; }
+  .tag {
+    display: inline-block;
+    font-weight: 800; font-stretch: 75%; text-transform: uppercase;
+    font-size: 17px; letter-spacing: .01em;
+    padding: 6px 10px 5px;
+    background: var(--ink); color: var(--paper);
+    transform: rotate(-4deg);
   }
-  .t-meta div { display: grid; gap: 2px; min-width: 0; }
-  .t-meta dt { font: 600 11px/1.2 var(--mono); letter-spacing: .14em; text-transform: uppercase; opacity: .6; }
-  .t-meta dd { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(20px, 2.4vw, 30px); line-height: 1.05; text-transform: uppercase; font-variant-numeric: tabular-nums; }
-  .stamp {
-    position: absolute; right: clamp(16px, 4vw, 48px); top: 34%;
-    transform: rotate(-9deg);
-    border: 3px solid var(--night); color: var(--night);
-    padding: 8px 14px 6px;
-    font-family: var(--display); font-weight: 900; text-transform: uppercase;
-    font-size: clamp(22px, 3vw, 38px); line-height: 1; letter-spacing: .04em;
-    mix-blend-mode: multiply;
+  .show:hover .tag { background: var(--paper); color: var(--blue); }
+
+  .dates-note { margin: 18px 0 0; max-width: 60ch; }
+
+  @media (max-width: 900px) {
+    .show { grid-template-columns: minmax(0, 1fr) auto; row-gap: 10px; }
+    .show time { grid-column: 1; grid-row: 1; }
+    .status { grid-column: 2; grid-row: 1; }
+    .artist { grid-column: 1 / -1; grid-row: 2; white-space: normal; }
+    .venue { grid-column: 1 / -1; grid-row: 3; }
   }
 
-  .t-stub {
-    position: relative;
-    padding: clamp(20px, 3vw, 32px) clamp(16px, 2vw, 28px);
-    border-left: 2px dashed color-mix(in srgb, var(--t-fg) 45%, transparent);
-    display: flex; flex-direction: column; justify-content: space-between; gap: 18px;
-  }
-  .t-stub::before, .t-stub::after {
-    /* punched notches */
-    content: ""; position: absolute; left: -13px; width: 24px; height: 24px; border-radius: 50%;
-    background: var(--night);
-  }
-  .t-stub::before { top: -12px; }
-  .t-stub::after { bottom: -12px; }
-  .t-stub .big {
-    font-family: var(--display); font-weight: 900; font-size: clamp(44px, 5.6vw, 76px);
-    line-height: .85; font-variant-numeric: tabular-nums;
-    writing-mode: vertical-rl; transform: rotate(180deg); align-self: flex-start;
-  }
-  .t-stub small { font: 600 11px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
-  .barcode {
-    height: 46px;
-    background: repeating-linear-gradient(90deg,
-      var(--t-fg) 0 2px, transparent 2px 4px, var(--t-fg) 4px 5px, transparent 5px 8px,
-      var(--t-fg) 8px 11px, transparent 11px 12px, var(--t-fg) 12px 13px, transparent 13px 16px);
-  }
-
-  .t-cap {
-    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 8px 40px; margin-top: 18px; color: var(--ash); font-size: 16px;
-  }
-  .t-cap strong { color: var(--chalk); font-weight: 600; display: block; }
-  .t-item { display: grid; }
-
-  @media (max-width: 720px) {
-    .ticket { grid-template-columns: 1fr; }
-    .t-stub {
-      border-left: 0; border-top: 2px dashed color-mix(in srgb, var(--t-fg) 45%, transparent);
-      flex-direction: row; align-items: center;
-    }
-    .t-stub::before { top: -13px; left: -12px; }
-    .t-stub::after { top: -13px; bottom: auto; left: auto; right: -12px; }
-    .t-stub .big { writing-mode: horizontal-tb; transform: none; align-self: center; }
-    .barcode { flex: 1; max-width: 140px; }
-    .t-meta { grid-template-columns: 1fr 1fr; }
-    .t-cap { grid-template-columns: 1fr; }
-  }
-
-  /* ---------- Method ---------- */
-  .method {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-    border-top: 1px solid var(--steel);
-  }
-  .step {
-    position: relative;
-    padding: 28px clamp(16px, 2.4vw, 32px) 36px 0;
-    display: grid; gap: 14px; align-content: start;
-  }
-  .step + .step { padding-left: clamp(16px, 2.4vw, 32px); border-left: 1px solid var(--steel); }
-  .step .n {
-    font-family: var(--display); font-weight: 900; font-size: clamp(56px, 7vw, 96px); line-height: .8;
-    color: transparent; -webkit-text-stroke: 1.5px var(--ember);
-  }
-  .step h3 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(26px, 2.6vw, 34px); line-height: 1; text-transform: uppercase; }
-  .step p { margin: 0; color: var(--ash); max-width: 36ch; }
-  @media (max-width: 820px) {
-    .method { grid-template-columns: 1fr; }
-    .step, .step + .step { padding: 24px 0 28px; border-left: 0; border-top: 1px solid var(--steel); }
-    .step:first-child { border-top: 0; }
-  }
-
-  .about-quote {
-    margin: clamp(56px, 8vw, 104px) 0 0;
+  /* ---------- About ---------- */
+  .about { row-gap: 32px; padding-top: 28px; }
+  .about-text {
+    grid-column: 4 / span 9;
+    margin: 0;
+    font-weight: 500;
+    font-stretch: 88%;
+    font-size: clamp(26px, 3.1vw, 46px);
+    line-height: 1.12;
+    letter-spacing: -.015em;
+    text-wrap: pretty;
     max-width: 30ch;
-    font-family: var(--display); font-weight: 700; text-transform: uppercase;
-    font-size: clamp(32px, 4.4vw, 60px); line-height: 1; letter-spacing: .005em;
-    text-wrap: balance;
   }
-  .about-quote span { color: var(--ember); }
-  .about-body { margin: 24px 0 0; max-width: 62ch; color: var(--ash); font-size: 18px; }
-
-  /* ---------- Venues ---------- */
-  .venues { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(20px, 3vw, 40px); }
-  .venue {
-    position: relative; overflow: hidden;
-    background: var(--iron); border: 1px solid var(--steel);
-    padding: clamp(20px, 3vw, 32px);
-    display: grid; gap: 22px;
+  .scope { grid-column: 4 / span 9; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px clamp(12px, 1.6vw, 24px); margin: 0; }
+  .scope div { border-top: 1px solid var(--rule); padding-top: 12px; min-width: 0; }
+  .scope dt { font-weight: 700; margin-bottom: 4px; }
+  .scope dd { margin: 0; color: var(--grey); font-size: 16px; max-width: 32ch; }
+  .about-label { grid-column: 1 / span 3; margin: 0; font-size: 15px; color: var(--grey); }
+  @media (max-width: 900px) {
+    .about-label, .about-text, .scope { grid-column: 1 / -1; }
+    .scope { grid-template-columns: 1fr; }
   }
-  .venue canvas { width: 100%; height: auto; aspect-ratio: 16 / 9; display: block; max-width: 100%; }
-  .venue h3 { margin: 0; font-family: var(--display); font-weight: 900; font-size: clamp(30px, 3.4vw, 46px); line-height: .95; text-transform: uppercase; }
-  .venue dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 20px; font-family: var(--mono); font-size: 13px; }
-  .venue dt { color: var(--ash); letter-spacing: .1em; text-transform: uppercase; }
-  .venue dd { margin: 0; font-variant-numeric: tabular-nums; }
-  @media (max-width: 760px) { .venues { grid-template-columns: 1fr; } }
 
   /* ---------- Contact ---------- */
-  .contact { background: var(--iron); border-top: 1px solid var(--steel); }
-  .contact-grid {
-    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
-    gap: 48px clamp(32px, 6vw, 96px);
-  }
-  .contact h2 {
+  .contact { padding-bottom: clamp(64px, 9vw, 128px); }
+  .contact-grid { row-gap: 40px; padding-top: 28px; }
+  .contact-side { grid-column: 1 / span 5; display: grid; gap: 18px; align-content: start; }
+  .contact-side h3 {
     margin: 0;
-    font-family: var(--display); font-weight: 900; text-transform: uppercase;
-    font-size: clamp(56px, 9vw, 140px); line-height: .84;
+    font-weight: 800; font-stretch: 62%;
+    font-size: clamp(48px, 6vw, 92px); line-height: .88; letter-spacing: -.02em;
+    text-wrap: balance;
   }
-  .contact h2 em { font-style: normal; color: var(--ember); }
-  .contact-side { display: grid; gap: 22px; align-content: start; }
-  .contact-side p { margin: 0; color: var(--ash); max-width: 40ch; }
-  .mail-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+  .contact-side p { margin: 0; max-width: 40ch; }
+  .mail-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 18px; }
   .mail {
-    font-family: var(--display); font-weight: 700;
-    font-size: clamp(26px, 3vw, 40px); line-height: 1.05;
-    text-decoration: none; border-bottom: 2px solid var(--ember);
+    font-weight: 700; font-stretch: 88%;
+    font-size: clamp(24px, 2.4vw, 34px); line-height: 1.1;
+    text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px;
     overflow-wrap: anywhere;
   }
+  .mail:hover { color: var(--blue); }
   .copy {
-    font: 600 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
-    color: var(--chalk); background: none; border: 1px solid var(--steel);
-    padding: 10px 12px; cursor: pointer;
+    font: 600 14px/1 var(--font); color: var(--ink);
+    background: none; border: 1px solid var(--ink); padding: 8px 12px; cursor: pointer;
   }
-  .copy:hover { border-color: var(--chalk); }
+  .copy:hover { background: var(--ink); color: var(--paper); }
+  .clock { font-variant-numeric: tabular-nums; }
 
-  .form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 20px; }
-  .field { display: grid; gap: 8px; align-content: start; min-width: 0; }
-  .field.full { grid-column: 1 / -1; }
-  .field label { font: 600 11px/1.2 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ash); }
-  .field label .opt { opacity: .7; text-transform: none; letter-spacing: 0; font-weight: 400; }
-  .field input, .field textarea {
-    font: 400 17px/1.4 var(--sans); color: var(--chalk);
-    background: var(--night); border: 1px solid var(--steel); border-radius: 0;
-    padding: 14px 16px; width: 100%;
-    transition: border-color .2s;
+  .form {
+    grid-column: 7 / span 6;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px 24px; align-content: start;
   }
-  .field textarea { min-height: 150px; resize: vertical; }
-  .field input:hover, .field textarea:hover { border-color: #3A3A41; }
-  .field input:focus, .field textarea:focus { outline: none; border-color: var(--ember); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 25%, transparent); }
-  .field input[aria-invalid="true"], .field textarea[aria-invalid="true"] { border-color: #FF6B6B; }
-  .err { color: #FF8A80; font-size: 13px; }
+  .field-f { display: grid; gap: 4px; align-content: start; min-width: 0; }
+  .field-f.full { grid-column: 1 / -1; }
+  .field-f label { font-size: 14px; font-weight: 600; }
+  .field-f label .opt { color: var(--grey); font-weight: 400; }
+  .field-f input, .field-f textarea {
+    font: 400 18px/1.4 var(--font); color: var(--ink);
+    background: transparent;
+    border: 0; border-bottom: 1px solid var(--ink); border-radius: 0;
+    padding: 10px 0; width: 100%;
+  }
+  .field-f textarea { min-height: 120px; resize: vertical; }
+  .field-f input:focus, .field-f textarea:focus { outline: none; border-bottom: 2px solid var(--blue); padding-bottom: 9px; }
+  .field-f input[aria-invalid="true"], .field-f textarea[aria-invalid="true"] { border-bottom-color: #C62828; }
+  .err { color: #C62828; font-size: 13px; }
   .err:empty { display: none; }
   .form-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
-  .form-note { color: var(--ash); font-size: 14px; }
+  .submit {
+    font: 700 16px/1 var(--font); color: var(--paper);
+    background: var(--ink); border: 0; padding: 17px 26px; cursor: pointer;
+    transition: background-color .2s;
+  }
+  .submit:hover { background: var(--blue); }
   .submit:disabled { opacity: .6; cursor: wait; }
-  .ready { grid-column: 1 / -1; border: 1px solid var(--steel); background: var(--night); padding: 20px; display: grid; gap: 8px; }
-  .ready.ok { border-color: var(--ember); }
-  .ready h3 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 26px; text-transform: uppercase; }
-  .ready p { margin: 0; color: var(--ash); font-size: 15px; }
-  @media (max-width: 860px) { .contact-grid { grid-template-columns: 1fr; } }
+  .ready { grid-column: 1 / -1; border-top: 2px solid var(--ink); padding-top: 14px; display: grid; gap: 4px; }
+  .ready.ok { border-color: var(--blue); }
+  .ready h4 { margin: 0; font-size: 18px; }
+  .ready p { margin: 0; color: var(--grey); font-size: 15px; }
+  @media (max-width: 900px) {
+    .contact-side, .form { grid-column: 1 / -1; }
+  }
   @media (max-width: 560px) { .form { grid-template-columns: 1fr; } }
 
   /* ---------- Footer ---------- */
-  footer { border-top: 1px solid var(--steel); }
+  footer { border-top: 1px solid var(--hair); }
   footer .wrap {
-    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px;
-    padding-block: 24px calc(24px + env(safe-area-inset-bottom, 0px));
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px;
+    padding-block: 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    color: var(--grey); font-size: 14px;
   }
-  .huge {
-    overflow: hidden;
-    font-family: var(--display); font-weight: 900; text-transform: uppercase;
-    font-size: clamp(64px, 17vw, 270px); line-height: .78; letter-spacing: -.01em;
-    color: transparent; -webkit-text-stroke: 1px var(--steel);
-    white-space: nowrap; text-align: center;
-    padding-block: 32px 8px;
-    user-select: none;
-  }
-
-  /* ---------- Reveal (content stays visible at rest; only enhances) ---------- */
-  .js .rise { transform: translateY(24px); transition: transform .9s cubic-bezier(.2,.7,.2,1); }
-  .js .rise.in { transform: none; }
 
   @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    .ticker-track, .logo i { animation: none; }
-    .ticket { transition: none; transform: none !important; }
-    .js .rise { transform: none; transition: none; }
+    .show, .show::before, .artist { transition: none; }
   }
 </style>
 </head>
 <body>
-<header class="top" id="top-bar">
-  <div class="wrap">
-    <a class="logo" href="#top"><i aria-hidden="true"></i>Palm G Event</a>
+<div class="field">
+  <header class="wrap top">
+    <a class="logo" href="#top">Palm G Event</a>
     <nav class="nav" aria-label="Main">
-      <a href="#work" data-i18n="nav_work">Work</a>
+      <a href="#dates" data-i18n="nav_work">Work</a>
       <a href="#about" data-i18n="nav_about">About</a>
-      <a href="#venues" data-i18n="nav_venues">Venues</a>
       <a href="#contact" data-i18n="nav_contact">Contact</a>
       <span class="lang" role="group" aria-label="Language">
         <button type="button" id="lang-en" data-lang="en" aria-pressed="true">EN</button>
         <button type="button" id="lang-tr" data-lang="tr" aria-pressed="false">TR</button>
       </span>
     </nav>
-  </div>
-</header>
+  </header>
 
-<main id="top">
-  <section class="hero" aria-labelledby="h1">
-    <canvas id="rig" aria-hidden="true"></canvas>
-    <div class="wrap">
-      <p class="label"><span data-i18n="eyebrow">Istanbul · Concert organization</span><span>41.01° N · 28.97° E</span></p>
-      <h1 id="h1" data-i18n-html="h1">Stadium nights <em>in Istanbul.</em></h1>
-      <div class="hero-foot">
-        <p class="lead" data-i18n="lead">In 2026 we were part of the organization of Kanye West's and Max Korzh's stadium concerts in Istanbul.</p>
-        <div class="cta-row">
-          <a class="btn" href="#work"><span data-i18n="cta_work">See our work</span></a>
-          <a class="btn hot" href="#contact"><span data-i18n="cta_contact">Bring an artist</span>
-            <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M1 7h11M8 3l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></a>
-        </div>
-      </div>
+  <section class="wrap hero" id="top">
+    <h1 data-i18n="h1">Concert organization in Istanbul.</h1>
+    <div class="grid hero-facts">
+      <p class="lead" data-i18n="lead">In 2026 we were part of the organization of Kanye West's and Max Korzh's stadium concerts in Istanbul.</p>
+      <p class="f1"><b data-i18n="f1_h">Based in</b><span data-i18n="loc">Istanbul, Türkiye</span></p>
+      <p class="f2"><b data-i18n="f2_h">We work on</b><span data-i18n="f2">Ticketed concerts in arenas and stadiums</span></p>
+    </div>
+  </section>
+</div>
+
+<main>
+  <section class="wrap sec" id="dates">
+    <div class="sec-head">
+      <h2 data-i18n="work_h">Selected work</h2>
+      <span>2026</span>
+    </div>
+    <ol class="dates">
+      <li class="show">
+        <time datetime="2026-05-30">30.05.26</time>
+        <p class="artist">Kanye West</p>
+        <p class="venue"><b>Atatürk Olimpiyat Stadyumu</b><span data-i18n="k_title">YE Live in Istanbul</span></p>
+        <p class="status" data-i18n="k_status">First concert in Turkey</p>
+      </li>
+      <li class="show">
+        <time datetime="2026-06-06">06.06.26</time>
+        <p class="artist">Max Korzh</p>
+        <p class="venue"><b>Beşiktaş Tüpraş Stadyumu</b><span data-i18n="m_title">Stadium concert</span></p>
+        <p class="status"><span class="tag" data-i18n="sticker">Sold out</span></p>
+      </li>
+    </ol>
+    <p class="dates-note small muted" data-i18n="dates_note">Palm G Event was part of the organization team for both concerts.</p>
+  </section>
+
+  <section class="wrap sec" id="about">
+    <div class="sec-head">
+      <h2 data-i18n="about_h">About</h2>
+    </div>
+    <div class="grid about">
+      <p class="about-label" data-i18n="about_label">Palm G Event</p>
+      <p class="about-text" data-i18n="about">An event organization company based in Istanbul. We work on public, ticketed concerts in arenas and stadiums.</p>
+      <dl class="scope">
+        <div><dt data-i18n="s1_h">Tour dates</dt><dd data-i18n="s1_p">Venue dates follow the artist's tour schedule.</dd></div>
+        <div><dt data-i18n="s2_h">Production</dt><dd data-i18n="s2_p">Planned around each artist's technical rider.</dd></div>
+        <div><dt data-i18n="s3_h">Venues</dt><dd data-i18n="s3_p">Arenas and stadiums in Istanbul, for public, ticketed shows.</dd></div>
+      </dl>
     </div>
   </section>
 
-  <div class="ticker" aria-hidden="true">
-    <div class="ticker-track">
-      <span>Kanye West <small>30.05.26</small> <b>/</b> Atatürk Olimpiyat Stadyumu <b>/</b> Max Korzh <small>06.06.26</small> <b>/</b> Beşiktaş Tüpraş Stadyumu <b>/</b> <i data-i18n="sticker_t">Sold out</i> <b>/</b></span>
-      <span>Kanye West <small>30.05.26</small> <b>/</b> Atatürk Olimpiyat Stadyumu <b>/</b> Max Korzh <small>06.06.26</small> <b>/</b> Beşiktaş Tüpraş Stadyumu <b>/</b> <i data-i18n="sticker_t2">Sold out</i> <b>/</b></span>
+  <section class="wrap sec contact" id="contact">
+    <div class="sec-head">
+      <h2 data-i18n="contact_h">Contact</h2>
     </div>
-  </div>
-
-  <section class="band" id="work">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2 data-i18n="work_h">Selected work</h2>
-        <span class="label">2026 · 02</span>
-      </div>
-
-      <div class="tickets">
-        <article class="t-item rise">
-          <div class="ticket t-kanye" role="img" aria-label="Kanye West, 30.05.2026, Atatürk Olimpiyat Stadyumu">
-            <div class="t-main">
-              <div class="t-row"><span>YE Live in Istanbul</span><span>İstanbul · TR</span></div>
-              <p class="t-name">Kanye<br>West</p>
-              <dl class="t-meta">
-                <div><dt data-i18n="d_date">Date</dt><dd>30.05.26</dd></div>
-                <div><dt data-i18n="d_venue">Venue</dt><dd>Atatürk Olimpiyat</dd></div>
-                <div><dt data-i18n="d_type">Format</dt><dd data-i18n="stadium">Stadium</dd></div>
-              </dl>
-            </div>
-            <div class="t-stub">
-              <small>Palm G Event</small>
-              <span class="big">30·05</span>
-              <div class="barcode"></div>
-            </div>
-          </div>
-          <div class="t-cap">
-            <p><strong>Kanye West · YE Live in Istanbul</strong><span data-i18n="k_meta">30 May 2026 · Atatürk Olympic Stadium</span></p>
-            <p data-i18n="k_text">Kanye West's first concert in Turkey. We were part of the organization team.</p>
-          </div>
-        </article>
-
-        <article class="t-item rise">
-          <div class="ticket t-korzh" role="img" aria-label="Max Korzh, 06.06.2026, Beşiktaş Tüpraş Stadyumu">
-            <div class="t-main">
-              <div class="t-row"><span>Live</span><span>İstanbul · TR</span></div>
-              <p class="t-name">Max<br>Korzh</p>
-              <span class="stamp" data-i18n="sticker">Sold out</span>
-              <dl class="t-meta">
-                <div><dt data-i18n="d_date">Date</dt><dd>06.06.26</dd></div>
-                <div><dt data-i18n="d_venue">Venue</dt><dd>Tüpraş Stadyumu</dd></div>
-                <div><dt data-i18n="d_type">Format</dt><dd data-i18n="stadium">Stadium</dd></div>
-              </dl>
-            </div>
-            <div class="t-stub">
-              <small>Palm G Event</small>
-              <span class="big">06·06</span>
-              <div class="barcode"></div>
-            </div>
-          </div>
-          <div class="t-cap">
-            <p><strong>Max Korzh</strong><span data-i18n="m_meta">6 June 2026 · Beşiktaş Tüpraş Stadium</span></p>
-            <p data-i18n="m_text">Sold-out stadium concert. We were part of the organization team.</p>
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="about" style="padding-top:0">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2 data-i18n="about_h">How we work</h2>
-        <span class="label" data-i18n="about_tag">Tour → Rider → Show</span>
-      </div>
-      <div class="method">
-        <div class="step rise">
-          <span class="n" aria-hidden="true">01</span>
-          <h3 data-i18n="s1_h">Tour schedule</h3>
-          <p data-i18n="s1_p">Venue dates follow the artist's tour schedule. We find the stadium or arena date that fits the routing.</p>
-        </div>
-        <div class="step rise">
-          <span class="n" aria-hidden="true">02</span>
-          <h3 data-i18n="s2_h">Technical rider</h3>
-          <p data-i18n="s2_p">Production is planned around the artist's technical rider: stage, sound, light and backstage.</p>
-        </div>
-        <div class="step rise">
-          <span class="n" aria-hidden="true">03</span>
-          <h3 data-i18n="s3_h">Show day</h3>
-          <p data-i18n="s3_p">Public, ticketed concerts in arenas and stadiums, from doors open to the last song.</p>
-        </div>
-      </div>
-      <p class="about-quote rise" data-i18n-html="quote">Istanbul is <span>between two continents.</span> Every tour passes through.</p>
-      <p class="about-body" data-i18n="about">Palm G Event is an event organization company based in Istanbul. We work on public, ticketed concerts in arenas and stadiums. Production is planned around each artist's technical rider, and venue dates follow the artist's tour schedule.</p>
-    </div>
-  </section>
-
-  <section class="band" id="venues" style="padding-top:0">
-    <div class="wrap">
-      <div class="sec-head">
-        <h2 data-i18n="venues_h">Venues</h2>
-        <span class="label">İstanbul</span>
-      </div>
-      <div class="venues">
-        <div class="venue rise">
-          <canvas class="bowl" width="640" height="360" data-shape="oval" aria-hidden="true"></canvas>
-          <h3>Atatürk Olimpiyat Stadyumu</h3>
-          <dl>
-            <dt data-i18n="v_side">Side</dt><dd data-i18n="v_eu">European side · Başakşehir</dd>
-            <dt data-i18n="v_coord">Coord.</dt><dd>41.0744° N · 28.7653° E</dd>
-            <dt data-i18n="v_show">Show</dt><dd>Kanye West · 30.05.26</dd>
-          </dl>
-        </div>
-        <div class="venue rise">
-          <canvas class="bowl" width="640" height="360" data-shape="rect" aria-hidden="true"></canvas>
-          <h3>Beşiktaş Tüpraş Stadyumu</h3>
-          <dl>
-            <dt data-i18n="v_side">Side</dt><dd data-i18n="v_bos">European side · Beşiktaş, on the Bosphorus</dd>
-            <dt data-i18n="v_coord">Coord.</dt><dd>41.0394° N · 29.0026° E</dd>
-            <dt data-i18n="v_show">Show</dt><dd>Max Korzh · 06.06.26</dd>
-          </dl>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band contact" id="contact">
-    <div class="wrap contact-grid">
+    <div class="grid contact-grid">
       <div class="contact-side">
-        <h2 data-i18n-html="contact_h">Next <em>show?</em></h2>
+        <h3 data-i18n="contact_title">Bring your artist to Istanbul.</h3>
         <p data-i18n="form_intro">Agents, managers and partners: tell us about the artist and the dates you have in mind.</p>
-        <p data-i18n="contact_p">Or write to us directly:</p>
+        <p class="muted" data-i18n="contact_p">Or write to us directly:</p>
         <div class="mail-row">
           <a class="mail" id="mail" href="mailto:center@palmgevent.com">center@palmgevent.com</a>
           <button type="button" class="copy" id="copy-mail" data-i18n="copy">Copy</button>
         </div>
-        <p class="label" data-i18n="loc">Istanbul, Türkiye</p>
+        <p class="small muted"><span data-i18n="time_label">Istanbul time</span> <span class="clock" id="clock">--:--</span> · GMT+3</p>
       </div>
 
       <form action="/thank-you" class="form" id="contact-form" method="POST" name="contact" data-netlify="true" netlify-honeypot="bot-field" novalidate>
         <input type="hidden" name="form-name" value="contact">
         <input type="hidden" name="subject" value="Palm G Event web sitesi: yeni mesaj (%{submissionId})">
         <p hidden><label>Don't fill this out: <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
-        <div class="field">
+        <div class="field-f">
           <label for="f-name" data-i18n="f_name">Name</label>
           <input id="f-name" name="name" type="text" autocomplete="name" required>
           <span class="err" id="e-name"></span>
         </div>
-        <div class="field">
+        <div class="field-f">
           <label for="f-company"><span data-i18n="f_company">Company or agency</span> <span class="opt" data-i18n="optional">(optional)</span></label>
           <input id="f-company" name="company" type="text" autocomplete="organization">
         </div>
-        <div class="field">
+        <div class="field-f">
           <label for="f-email" data-i18n="f_email">Email</label>
           <input id="f-email" name="email" type="email" autocomplete="email" required>
           <span class="err" id="e-email"></span>
         </div>
-        <div class="field">
+        <div class="field-f">
           <label for="f-artist"><span data-i18n="f_artist">Artist</span> <span class="opt" data-i18n="optional">(optional)</span></label>
           <input id="f-artist" name="artist" type="text">
         </div>
-        <div class="field full">
+        <div class="field-f full">
           <label for="f-message" data-i18n="f_message">Message</label>
           <textarea id="f-message" name="message" required></textarea>
           <span class="err" id="e-message"></span>
         </div>
         <div class="form-actions">
-          <button type="submit" class="btn hot submit" id="f-submit" data-i18n="f_submit">Send message</button>
-          <span class="form-note" data-i18n="f_note">We reply from center@palmgevent.com.</span>
+          <button type="submit" class="submit" id="f-submit" data-i18n="f_submit">Send message</button>
+          <span class="small muted" data-i18n="f_note">We reply from center@palmgevent.com.</span>
         </div>
         <div class="ready ok" id="sent" hidden role="status">
-          <h3 data-i18n="s_title">Message sent</h3>
+          <h4 data-i18n="s_title">Message sent</h4>
           <p data-i18n="s_text">Thank you. We have received your message and will reply by email.</p>
         </div>
         <div class="ready" id="failed" hidden role="alert">
-          <h3 data-i18n="x_title">Your message could not be sent</h3>
+          <h4 data-i18n="x_title">Your message could not be sent</h4>
           <p data-i18n="x_text">Please try again, or write to us directly at center@palmgevent.com.</p>
         </div>
       </form>
@@ -668,42 +417,35 @@
 </main>
 
 <footer>
-  <div class="huge" aria-hidden="true">Palm G Event</div>
-  <div class="wrap label">
+  <div class="wrap">
     <span>© 2026 Palm G Event</span>
     <span>palmgevent.com</span>
   </div>
 </footer>
 
 <script>
-document.documentElement.classList.add("js");
 (function () {
   var dict = {
     en: {
-      nav_work: "Work", nav_about: "About", nav_venues: "Venues", nav_contact: "Contact",
-      eyebrow: "Istanbul · Concert organization",
-      h1: "Stadium nights <em>in Istanbul.</em>",
+      nav_work: "Work", nav_about: "About", nav_contact: "Contact",
+      h1: "Concert organization in Istanbul.",
       lead: "In 2026 we were part of the organization of Kanye West's and Max Korzh's stadium concerts in Istanbul.",
-      cta_work: "See our work", cta_contact: "Bring an artist",
+      f1_h: "Based in", loc: "Istanbul, Türkiye",
+      f2_h: "We work on", f2: "Ticketed concerts in arenas and stadiums",
       work_h: "Selected work",
-      d_date: "Date", d_venue: "Venue", d_type: "Format", stadium: "Stadium",
-      k_meta: "30 May 2026 · Atatürk Olympic Stadium",
-      k_text: "Kanye West's first concert in Turkey. We were part of the organization team.",
-      m_meta: "6 June 2026 · Beşiktaş Tüpraş Stadium",
-      m_text: "Sold-out stadium concert. We were part of the organization team.",
-      sticker: "Sold out", sticker_t: "Sold out", sticker_t2: "Sold out",
-      about_h: "How we work", about_tag: "Tour → Rider → Show",
-      s1_h: "Tour schedule", s1_p: "Venue dates follow the artist's tour schedule. We find the stadium or arena date that fits the routing.",
-      s2_h: "Technical rider", s2_p: "Production is planned around the artist's technical rider: stage, sound, light and backstage.",
-      s3_h: "Show day", s3_p: "Public, ticketed concerts in arenas and stadiums, from doors open to the last song.",
-      quote: "Istanbul is <span>between two continents.</span> Every tour passes through.",
-      about: "Palm G Event is an event organization company based in Istanbul. We work on public, ticketed concerts in arenas and stadiums. Production is planned around each artist's technical rider, and venue dates follow the artist's tour schedule.",
-      venues_h: "Venues", v_side: "Side", v_coord: "Coord.", v_show: "Show",
-      v_eu: "European side · Başakşehir", v_bos: "European side · Beşiktaş, on the Bosphorus",
-      contact_h: "Next <em>show?</em>",
+      k_title: "YE Live in Istanbul", k_status: "First concert in Turkey",
+      m_title: "Stadium concert", sticker: "Sold out",
+      dates_note: "Palm G Event was part of the organization team for both concerts.",
+      about_h: "About", about_label: "Palm G Event",
+      about: "An event organization company based in Istanbul. We work on public, ticketed concerts in arenas and stadiums.",
+      s1_h: "Tour dates", s1_p: "Venue dates follow the artist's tour schedule.",
+      s2_h: "Production", s2_p: "Planned around each artist's technical rider.",
+      s3_h: "Venues", s3_p: "Arenas and stadiums in Istanbul, for public, ticketed shows.",
+      contact_h: "Contact",
+      contact_title: "Bring your artist to Istanbul.",
       contact_p: "Or write to us directly:",
       copy: "Copy", copied: "Copied",
-      loc: "Istanbul, Türkiye",
+      time_label: "Istanbul time",
       form_intro: "Agents, managers and partners: tell us about the artist and the dates you have in mind.",
       f_name: "Name", f_company: "Company or agency", f_email: "Email",
       f_artist: "Artist", f_message: "Message", optional: "(optional)",
@@ -718,30 +460,25 @@ document.documentElement.classList.add("js");
       x_text: "Please try again, or write to us directly at center@palmgevent.com."
     },
     tr: {
-      nav_work: "İşlerimiz", nav_about: "Hakkımızda", nav_venues: "Mekânlar", nav_contact: "İletişim",
-      eyebrow: "İstanbul · Konser organizasyonu",
-      h1: "İstanbul'da <em>stadyum geceleri.</em>",
+      nav_work: "İşlerimiz", nav_about: "Hakkımızda", nav_contact: "İletişim",
+      h1: "İstanbul'da konser organizasyonu.",
       lead: "2026'da Kanye West ve Max Korzh'un İstanbul stadyum konserlerinin organizasyonunda yer aldık.",
-      cta_work: "İşlerimizi görün", cta_contact: "Sanatçınızı getirin",
+      f1_h: "Merkez", loc: "İstanbul, Türkiye",
+      f2_h: "Alanımız", f2: "Arena ve stadyumlarda biletli konserler",
       work_h: "Referanslar",
-      d_date: "Tarih", d_venue: "Mekân", d_type: "Format", stadium: "Stadyum",
-      k_meta: "30 Mayıs 2026 · Atatürk Olimpiyat Stadyumu",
-      k_text: "Kanye West'in Türkiye'deki ilk konseri. Organizasyon ekibinde yer aldık.",
-      m_meta: "6 Haziran 2026 · Beşiktaş Tüpraş Stadyumu",
-      m_text: "Kapalı gişe stadyum konseri. Organizasyon ekibinde yer aldık.",
-      sticker: "Kapalı gişe", sticker_t: "Kapalı gişe", sticker_t2: "Kapalı gişe",
-      about_h: "Nasıl çalışıyoruz", about_tag: "Turne → Rider → Konser",
-      s1_h: "Turne takvimi", s1_p: "Mekân tarihlerini sanatçının turne takvimine göre ayarlıyor, rotaya uyan stadyum ya da arena tarihini buluyoruz.",
-      s2_h: "Teknik rider", s2_p: "Prodüksiyonu sanatçının teknik isteklerine göre planlıyoruz: sahne, ses, ışık ve kulis.",
-      s3_h: "Konser günü", s3_p: "Arena ve stadyumlarda biletli, halka açık konserler; kapılar açıldığı andan son şarkıya kadar.",
-      quote: "İstanbul <span>iki kıtanın arasında.</span> Her turne buradan geçer.",
-      about: "Palm G Event, İstanbul merkezli bir etkinlik organizasyon şirketidir. Arena ve stadyumlarda biletli, halka açık konserler üzerinde çalışıyoruz. Prodüksiyonu her sanatçının teknik isteklerine göre planlıyor, mekân tarihlerini sanatçının turne takvimine göre ayarlıyoruz.",
-      venues_h: "Mekânlar", v_side: "Yaka", v_coord: "Koord.", v_show: "Konser",
-      v_eu: "Avrupa Yakası · Başakşehir", v_bos: "Avrupa Yakası · Beşiktaş, Boğaz kıyısı",
-      contact_h: "Sıradaki <em>konser?</em>",
+      k_title: "YE Live in Istanbul", k_status: "Türkiye'deki ilk konseri",
+      m_title: "Stadyum konseri", sticker: "Kapalı gişe",
+      dates_note: "Palm G Event, iki konserde de organizasyon ekibinde yer aldı.",
+      about_h: "Hakkımızda", about_label: "Palm G Event",
+      about: "İstanbul merkezli bir etkinlik organizasyon şirketi. Arena ve stadyumlarda biletli, halka açık konserler üzerinde çalışıyoruz.",
+      s1_h: "Turne tarihleri", s1_p: "Mekân tarihlerini sanatçının turne takvimine göre ayarlıyoruz.",
+      s2_h: "Prodüksiyon", s2_p: "Her sanatçının teknik isteklerine göre planlanır.",
+      s3_h: "Mekânlar", s3_p: "İstanbul'da arena ve stadyumlar; biletli, halka açık konserler.",
+      contact_h: "İletişim",
+      contact_title: "Sanatçınızı İstanbul'a getirin.",
       contact_p: "Ya da doğrudan bize yazın:",
       copy: "Kopyala", copied: "Kopyalandı",
-      loc: "İstanbul, Türkiye",
+      time_label: "İstanbul saati",
       form_intro: "Ajanlar, menajerler ve iş ortakları: sanatçıyı ve düşündüğünüz tarihleri bize anlatın.",
       f_name: "Ad soyad", f_company: "Şirket veya ajans", f_email: "E-posta",
       f_artist: "Sanatçı", f_message: "Mesaj", optional: "(isteğe bağlı)",
@@ -766,10 +503,6 @@ document.documentElement.classList.add("js");
       var k = el.getAttribute("data-i18n");
       if (d[k] != null) el.textContent = d[k];
     });
-    document.querySelectorAll("[data-i18n-html]").forEach(function (el) {
-      var k = el.getAttribute("data-i18n-html");
-      if (d[k] != null) el.innerHTML = d[k]; /* static strings from dict only */
-    });
     document.querySelectorAll(".lang button").forEach(function (b) {
       b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === current));
     });
@@ -783,171 +516,14 @@ document.documentElement.classList.add("js");
   if (!saved && /^tr\b/i.test(navigator.language || "")) saved = "tr";
   if (saved && dict[saved]) apply(saved);
 
-  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  /* Header background after scrolling */
-  var bar = document.getElementById("top-bar");
-  function onScroll() { bar.classList.toggle("scrolled", window.scrollY > 40); }
-  window.addEventListener("scroll", onScroll, { passive: true });
-  onScroll();
-
-  /* Reveal on scroll (elements already in view show at once) */
-  var rise = document.querySelectorAll(".rise");
-  if ("IntersectionObserver" in window && !reduce) {
-    var io = new IntersectionObserver(function (es) {
-      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
-    }, { rootMargin: "0px 0px -8% 0px" });
-    rise.forEach(function (el) { io.observe(el); });
-  } else {
-    rise.forEach(function (el) { el.classList.add("in"); });
+  /* Istanbul local time, for agents in other time zones */
+  var clock = document.getElementById("clock");
+  function tick() {
+    try {
+      clock.textContent = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit" }).format(new Date());
+    } catch (e) { clock.parentNode.hidden = true; }
   }
-
-  /* Ticket tilt + light glance */
-  if (!reduce && window.matchMedia("(hover: hover)").matches) {
-    document.querySelectorAll(".ticket").forEach(function (t) {
-      t.addEventListener("pointermove", function (e) {
-        var r = t.getBoundingClientRect();
-        var x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
-        t.style.setProperty("--tilt-y", ((x - .5) * 6).toFixed(2) + "deg");
-        t.style.setProperty("--tilt-x", ((.5 - y) * 5).toFixed(2) + "deg");
-        t.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
-        t.style.setProperty("--my", (y * 100).toFixed(1) + "%");
-      });
-      t.addEventListener("pointerleave", function () {
-        t.style.setProperty("--tilt-x", "0deg");
-        t.style.setProperty("--tilt-y", "0deg");
-      });
-    });
-  }
-
-  /* Hero: stadium light rig — sweeping beams through haze over a crowd */
-  (function () {
-    var cv = document.getElementById("rig");
-    var cx = cv.getContext("2d");
-    var W, H, dpr, crowd = [], dust = [];
-    function resize() {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      W = cv.clientWidth; H = cv.clientHeight;
-      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-      cx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      crowd = [];
-      var n = Math.round(W / 7);
-      for (var i = 0; i < n; i++) {
-        crowd.push({ x: (i + Math.random()) * (W / n), h: 10 + Math.random() * 22, r: 4 + Math.random() * 4, ph: Math.random() * 6.28, arm: Math.random() < .18 });
-      }
-      dust = [];
-      for (var j = 0; j < 90; j++) dust.push({ x: Math.random() * W, y: Math.random() * H, v: .1 + Math.random() * .3, s: Math.random() * 1.4 + .3 });
-    }
-    var beams = [
-      { x: .12, c: "255,90,31", sp: .23, ph: 0 },
-      { x: .32, c: "255,227,184", sp: .17, ph: 2 },
-      { x: .55, c: "255,90,31", sp: .29, ph: 4 },
-      { x: .74, c: "255,227,184", sp: .2, ph: 1 },
-      { x: .9, c: "255,90,31", sp: .25, ph: 3 }
-    ];
-    function beam(x0, y0, ang, len, wid, col, a) {
-      var x1 = x0 + Math.sin(ang) * len, y1 = y0 + Math.cos(ang) * len;
-      var nx = Math.cos(ang) * wid, ny = -Math.sin(ang) * wid;
-      var g = cx.createLinearGradient(x0, y0, x1, y1);
-      g.addColorStop(0, "rgba(" + col + "," + (a * .9) + ")");
-      g.addColorStop(.5, "rgba(" + col + "," + (a * .25) + ")");
-      g.addColorStop(1, "rgba(" + col + ",0)");
-      cx.fillStyle = g;
-      cx.beginPath();
-      cx.moveTo(x0 - 2, y0); cx.lineTo(x1 - nx, y1 - ny); cx.lineTo(x1 + nx, y1 + ny); cx.lineTo(x0 + 2, y0);
-      cx.closePath(); cx.fill();
-    }
-    function frame(ms) {
-      var t = ms / 1000;
-      cx.globalCompositeOperation = "source-over";
-      cx.fillStyle = "#0A0A0B";
-      cx.fillRect(0, 0, W, H);
-      // haze glow behind the stage
-      var hg = cx.createRadialGradient(W * .5, H * 1.05, 10, W * .5, H * 1.05, Math.max(W, H) * .8);
-      hg.addColorStop(0, "rgba(255,90,31,.28)");
-      hg.addColorStop(.4, "rgba(194,38,12,.09)");
-      hg.addColorStop(1, "rgba(10,10,11,0)");
-      cx.fillStyle = hg; cx.fillRect(0, 0, W, H);
-
-      cx.globalCompositeOperation = "lighter";
-      var pulse = .55 + .45 * Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 * (126 / 60) / 2)), 8);
-      beams.forEach(function (b, i) {
-        // beams hang from the roof truss and point down toward the crowd
-        var ang = Math.PI + Math.sin(t * b.sp + b.ph) * .5;
-        var x0 = b.x * W;
-        beam(x0, -10, ang, H * 1.4, H * .16, b.c, .16 * (i % 2 ? 1 : pulse));
-        cx.fillStyle = "rgba(" + b.c + ",.9)";
-        cx.beginPath(); cx.arc(x0, 2, 3, 0, 6.28); cx.fill();
-      });
-      // up-lights from the stage floor
-      for (var k = 0; k < 2; k++) {
-        var ua = Math.sin(t * .31 + k * 3) * .45;
-        beam(W * (.4 + k * .2), H + 10, ua, H * 1.2, H * .1, "255,227,184", .07);
-      }
-      // dust in the beams
-      cx.fillStyle = "rgba(255,227,184,.35)";
-      dust.forEach(function (p) {
-        p.y -= p.v; p.x += Math.sin(t + p.y * .01) * .15;
-        if (p.y < 0) { p.y = H; p.x = Math.random() * W; }
-        cx.fillRect(p.x, p.y, p.s, p.s);
-      });
-
-      // crowd silhouettes
-      cx.globalCompositeOperation = "source-over";
-      cx.fillStyle = "#050506";
-      var base = H + 4;
-      crowd.forEach(function (c) {
-        var bob = Math.sin(t * 4.2 + c.ph) * 2 * pulse;
-        var top = base - 26 - c.h + bob;
-        cx.beginPath(); cx.arc(c.x, top, c.r, 0, 6.28); cx.fill();
-        cx.fillRect(c.x - c.r * 1.5, top + c.r * .6, c.r * 3, base - top);
-        if (c.arm) {
-          cx.save(); cx.translate(c.x + c.r, top + 4); cx.rotate(-.35 + Math.sin(t * 3 + c.ph) * .2);
-          cx.fillRect(-1.5, -26, 3.5, 28); cx.restore();
-        }
-      });
-      if (!reduce) raf = requestAnimationFrame(frame);
-    }
-    var raf;
-    resize();
-    window.addEventListener("resize", function () { resize(); if (reduce) frame(0); });
-    frame(0);
-    // pause when the hero is off screen
-    if (!reduce && "IntersectionObserver" in window) {
-      new IntersectionObserver(function (es) {
-        if (es[0].isIntersecting) { cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); }
-        else cancelAnimationFrame(raf);
-      }).observe(cv);
-    }
-  })();
-
-  /* Venue plans: simple top-down stadium bowls with the stage and the floor */
-  document.querySelectorAll(".bowl").forEach(function (cv) {
-    var cx = cv.getContext("2d"), w = cv.width, h = cv.height, oval = cv.dataset.shape === "oval";
-    cx.fillStyle = "#141417"; cx.fillRect(0, 0, w, h);
-    cx.strokeStyle = "rgba(242,239,234,.08)"; cx.lineWidth = 1;
-    for (var gx = 0; gx < w; gx += 20) { cx.beginPath(); cx.moveTo(gx + .5, 0); cx.lineTo(gx + .5, h); cx.stroke(); }
-    for (var gy = 0; gy < h; gy += 20) { cx.beginPath(); cx.moveTo(0, gy + .5); cx.lineTo(w, gy + .5); cx.stroke(); }
-    function ring(s, col, lw) {
-      cx.strokeStyle = col; cx.lineWidth = lw; cx.beginPath();
-      if (oval) cx.ellipse(w / 2, h / 2, w * .42 * s, h * .4 * s, 0, 0, 6.28);
-      else { var rw = w * .84 * s, rh = h * .8 * s, r = 40 * s; cx.roundRect(w / 2 - rw / 2, h / 2 - rh / 2, rw, rh, r); }
-      cx.stroke();
-    }
-    for (var i = 0; i < 9; i++) ring(1 - i * .045, "rgba(242,239,234," + (.5 - i * .04) + ")", 1);
-    // pitch / floor
-    cx.fillStyle = "rgba(255,90,31,.12)";
-    cx.fillRect(w * .27, h * .32, w * .46, h * .36);
-    cx.strokeStyle = "rgba(255,90,31,.6)"; cx.lineWidth = 1;
-    cx.strokeRect(w * .27 + .5, h * .32 + .5, w * .46, h * .36);
-    // stage at one end
-    cx.fillStyle = "#FF5A1F";
-    cx.fillRect(w * .245, h * .38, w * .035, h * .24);
-    cx.font = "600 12px JetBrains Mono, monospace";
-    cx.fillStyle = "rgba(242,239,234,.7)";
-    cx.fillText("STAGE", w * .245, h * .36);
-    cx.fillText("FLOOR", w * .46, h * .52);
-  });
+  tick(); setInterval(tick, 15000);
 
   /* Copy email */
   var btn = document.getElementById("copy-mail");
@@ -997,10 +573,10 @@ document.documentElement.classList.add("js");
       if (!res.ok) throw new Error("HTTP " + res.status);
       form.reset();
       sent.hidden = false;
-      sent.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+      sent.scrollIntoView({ block: "nearest" });
     }).catch(function () {
       failed.hidden = false;
-      failed.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+      failed.scrollIntoView({ block: "nearest" });
     }).then(function () {
       submitBtn.disabled = false;
       submitBtn.textContent = dict[current].f_submit;
