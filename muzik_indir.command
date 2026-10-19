@@ -12,13 +12,29 @@ if ! command -v yt-dlp >/dev/null; then
   [ $MAC = 1 ] && f=yt-dlp_macos || f=yt-dlp_linux
   curl -fL -o "$BIN/yt-dlp" "https://github.com/yt-dlp/yt-dlp/releases/latest/download/$f" && chmod +x "$BIN/yt-dlp"
 fi
-if ! command -v ffmpeg >/dev/null; then
+# MP3'e çevirmek için ffmpeg + ffprobe ikisi de şart (yoksa webm olarak kalıyor)
+if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
   echo "ffmpeg kuruluyor..."
-  if command -v brew >/dev/null; then brew install ffmpeg
-  elif [ $MAC = 1 ]; then curl -fL -o "$BIN/ff.zip" https://evermeet.cx/ffmpeg/getrelease/zip && unzip -oq "$BIN/ff.zip" -d "$BIN" && rm "$BIN/ff.zip"
+  if [ $MAC = 1 ]; then
+    [ "$(uname -m)" = arm64 ] && a=arm64 || a=x64
+    for t in ffmpeg ffprobe; do
+      curl -fL "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.0/$t-darwin-$a.gz" | gunzip > "$BIN/$t"
+      chmod +x "$BIN/$t"; codesign -s - -f "$BIN/$t" >/dev/null 2>&1
+    done
   else echo "ffmpeg yok: sudo apt install ffmpeg"; fi
 fi
+if ! ffprobe -version >/dev/null 2>&1; then
+  M="ffmpeg kurulamadı, MP3'e çevrilemez. İnternet bağlantısını kontrol edip tekrar aç."
+  [ $GUI = 1 ] && osascript -e "display alert \"Müzik İndir\" message \"$M\"" || echo "$M"; exit 1
+fi
 yt-dlp -U >/dev/null 2>&1   # YouTube sık değişiyor, her açılışta güncelle
+
+# Daha önce webm olarak kalanları MP3'e çevir
+for w in "$OUT"/*.webm; do
+  [ -e "$w" ] || continue
+  echo "Çevriliyor: $(basename "$w")"
+  ffmpeg -loglevel error -y -i "$w" -vn -b:a 320k "${w%.webm}.mp3" && rm "$w"
+done
 
 ask() {
   if [ $GUI = 1 ]; then
