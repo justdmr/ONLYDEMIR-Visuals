@@ -112,6 +112,29 @@ async function work() {
   busy = false;
 }
 
+
+// Set Analiz: sadece okur, hiçbir dosyaya dokunmaz. Raporu masaüstüne yazar.
+const AUD = /\.(mp3|m4a|aac|wav|aiff?|flac|ogg|opus|alac)$/i;
+async function analyze(root) {
+  if (!(await exists(root))) return { err: "Klasör bulunamadı" };
+  const files = [], dirs = [];
+  const walk = async (d, rel) => { const ents = [];
+    try { for await (const e of Deno.readDir(d)) if (!e.name.startsWith(".")) ents.push(e); } catch { return; }
+    ents.sort((a, b) => a.name.localeCompare(b.name, "tr"));
+    for (const e of ents) { const r = rel ? rel + "/" + e.name : e.name;
+      if (e.isDirectory) { dirs.push(r); await walk(d + "/" + e.name, r); } else if (AUD.test(e.name)) files.push(r); } };
+  await walk(root, "");
+  const tag = async f => { const o = await run("ffprobe", ["-v", "quiet", "-of", "json", "-show_entries", "format=duration,bit_rate:format_tags", root + "/" + f]);
+    try { const j = JSON.parse(o).format, t = {}; for (const k in j.tags || {}) t[k.toLowerCase()] = j.tags[k];
+      return [f, t.artist || "", t.title || "", t.genre || "", t.tbpm || t.bpm || "", t.initialkey || t.tkey || t.key || "", Math.round(j.duration || 0), Math.round((j.bit_rate || 0) / 1000)]; }
+    catch { return [f, "", "", "", "", "", "", ""]; } };
+  const rows = []; for (let i = 0; i < files.length; i += 8) rows.push(...await Promise.all(files.slice(i, i + 8).map(tag)));
+  const out = [`SET ANALİZ — ${root}`, `${files.length} şarkı, ${dirs.length} klasör — ${new Date().toLocaleString("tr")}`, "", "== KLASÖRLER (şarkı sayısı) =="];
+  for (const d of dirs) out.push(`${d}  (${files.filter(f => f.startsWith(d + "/") && !f.slice(d.length + 1).includes("/")).length})`);
+  out.push("", "== ŞARKILAR ==", ["dosya", "sanatçı", "isim", "tür", "bpm", "key", "süre_sn", "kbps"].join("\t"), ...rows.map(r => r.join("\t")));
+  await Deno.mkdir(HOME + "/Desktop", { recursive: true }).catch(() => {}); const rep = HOME + "/Desktop/set_analiz.txt"; await Deno.writeTextFile(rep, out.join("\n"));
+  return { ok: 1, files: files.length, dirs: dirs.length, report: rep };
+}
 const json = (d, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "content-type": "application/json" } });
 Deno.serve({ hostname: "127.0.0.1", port: +E.PORT, onListen: () => console.log("Hazır → http://localhost:" + E.PORT) }, async req => {
   const u = new URL(req.url), b = req.method === "POST" ? await req.json().catch(() => ({})) : {};
@@ -133,6 +156,7 @@ Deno.serve({ hostname: "127.0.0.1", port: +E.PORT, onListen: () => console.log("
     case "/api/cancel": { const j = jobs.find(x => x.id === b.id); if (j) { j.st = "iptal"; try { j.proc?.kill(); } catch {} } return json({ ok: 1 }); }
     case "/api/clear": { for (let i = jobs.length; i--;) if (!["iniyor", "çevriliyor", "sırada"].includes(jobs[i].st)) jobs.splice(i, 1); return json({ ok: 1 }); }
     case "/api/open": await run(MAC ? "open" : "xdg-open", [b.path]); return json({ ok: 1 });
+    case "/api/analyze": return json(await analyze(b.path));
     case "/api/update": { const ok = await new Deno.Command("bash", { args: [E.SELF, "--update"] }).output(); return json({ ok: ok.success }); }
   }
   return new Response("yok", { status: 404 });
@@ -173,6 +197,9 @@ textarea{min-height:84px;resize:vertical}.row{display:flex;gap:10px;flex-wrap:wr
 <label class="chk"><input type="checkbox" id="norm"> Ses seviyesini eşitle</label>
 <div><input id="trim" placeholder="Kes: 1:00-2:30 (boş = tamamı)"></div></div></div>
 <button class="go" onclick="add()">İNDİR</button>
+<div class="c" style="margin-top:14px"><label>Set Analiz — USB'deki setini okur, hiçbir şeye dokunmaz</label>
+<div class="row"><input id="ap" placeholder="USB ya da set klasörü"><button class="sm" style="flex:0" onclick="pickA()">Klasör seç…</button></div>
+<button class="go" style="background:#2a2a33" onclick="ana()">ANALİZ ET</button><div class="hint" id="ar">Rapor masaüstüne <b>set_analiz.txt</b> olarak kaydedilir; o dosyayı Claude'a gönder.</div></div>
 <div class="c" style="margin-top:14px"><div class="jt"><label style="margin:0">İndirmeler</label><span>
 <button class="sm" onclick="api('open',{path:$('dest').value})">Klasörü aç</button>
 <button class="sm" onclick="api('clear')">Temizle</button>
@@ -191,6 +218,9 @@ async function add(){if(!$("u").value.trim())return $("u").focus();const r=await
 async function upd(){$("up").textContent="güncelleniyor…";const r=await api("update");$("up").textContent=r.ok?"güncel ✓":"olmadı";}
 const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"})[c]);
 async function poll(){const j=await api("jobs");$("jobs").innerHTML=j.length?j.slice().reverse().map(x=>`<div class="job ${x.st}"><div class="jt"><span class="nm">${esc(x.title||x.url)}</span><span class="st">${x.item?x.item+" · ":""}${x.st}${x.st=="iniyor"?" "+Math.round(x.pct)+"%":""} ${["sırada","iniyor","çevriliyor"].includes(x.st)?`<button class="sm" onclick="api('cancel',{id:${x.id}})">✕</button>`:""}</span></div><div class="bar"><i style="width:${x.pct}%"></i></div>${x.err?`<div class="err">${esc(x.err)}</div>`:""}</div>`).join(""):'<div class="hint">Henüz yok.</div>'}
+async function pickA(){const r=await api("pick");if(r.path)$("ap").value=r.path}
+async function ana(){if(!$("ap").value)return pickA();$("ar").textContent="Analiz ediliyor… (büyük setlerde birkaç dakika)";const r=await api("analyze",{path:$("ap").value});
+ $("ar").innerHTML=r.err?esc(r.err):`✓ ${r.files} şarkı, ${r.dirs} klasör okundu → <b>${esc(r.report)}</b> — bu dosyayı Claude'a gönder.`}
 places();poll();setInterval(poll,1000);
 </script></body></html>
 HTML
